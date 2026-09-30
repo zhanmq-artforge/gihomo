@@ -1,0 +1,15 @@
+// Polkit rule for Gihomo & Mihomo TUN mode with systemd-resolved
+// Allows local active desktop users to configure systemd-resolved DNS settings for TUN mode without password prompts.
+
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.freedesktop.resolve1.set-dns-servers" ||
+         action.id == "org.freedesktop.resolve1.set-domains" ||
+         action.id == "org.freedesktop.resolve1.set-default-route" ||
+         action.id == "org.freedesktop.resolve1.set-dns-over-tls" ||
+         action.id == "org.freedesktop.resolve1.set-dnssec" ||
+         action.id == "org.freedesktop.resolve1.revert") &&
+        subject.active == true && subject.local == true &&
+        (subject.isInGroup("sudo") || subject.isInGroup("wheel") || subject.isInGroup("netdev") || subject.isInGroup("admin"))) {
+        return polkit.Result.YES;
+    }
+});

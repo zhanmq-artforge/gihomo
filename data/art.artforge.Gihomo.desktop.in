@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Gihomo
+GenericName=Proxy & Network Manager
+Comment=Modern GTK4 & Libadwaita Mihomo Proxy Client
+Exec=gihomo
+Icon=art.artforge.Gihomo
+Terminal=false
+Type=Application
+Categories=Network;Utility;Settings;
+StartupNotify=true
+X-Purism-FormFactor=Workstation;Mobile;

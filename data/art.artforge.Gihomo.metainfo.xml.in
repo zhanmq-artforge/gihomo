@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>art.artforge.Gihomo</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Gihomo</name>
+  <summary>Modern GTK4 &amp; Libadwaita Mihomo Proxy Client for Linux</summary>
+  <description>
+    <p>
+      Gihomo is a modern native desktop proxy client for Mihomo (Clash.Meta) built specifically for Linux and GNOME desktop environments.
+    </p>
+    <p>Core Capabilities:</p>
+    <ul>
+      <li>High-fidelity multi-subscription management with remote URL, local YAML, and offline share links (SS, VMess, VLESS, Trojan, Hysteria 2) batch import.</li>
+      <li>Embedded native Mihomo kernel process lifecycle supervision with clean child signal termination.</li>
+      <li>Zero-password seamless TUN mode via Linux CAP_NET_ADMIN capabilities and FreeDesktop Polkit integration.</li>
+      <li>Live bidirectional GNOME system proxy synchronization via GSettings.</li>
+      <li>Real-time traffic throughput gauges, session counters, and active TCP/UDP connection monitoring.</li>
+      <li>Live kernel WebSocket log diagnostic console with level filtering and search.</li>
+      <li>D-Bus StatusNotifierItem (SNI) native system tray integration with background daemon mode.</li>
+      <li>Zero-restart instant bilingual hot-switching (Simplified Chinese and English).</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">art.artforge.Gihomo.desktop</launchable>
+  <developer id="art.artforge">
+    <name>ArtForge Team</name>
+  </developer>
+  <releases>
+    <release version="1.0.0" date="2026-09-30">
+      <description>
+        <p>Official 1.0.0 General Availability release of Gihomo: Modern native GTK4 + Libadwaita management client for Mihomo on Linux.</p>
+      </description>
+    </release>
+  </releases>
+</component>

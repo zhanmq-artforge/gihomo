@@ -1,0 +1,25 @@
+[package]
+name = "gihomo-infra"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+gihomo-core = { workspace = true }
+tokio = { workspace = true }
+futures-util = { workspace = true }
+tokio-tungstenite = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+gio = { workspace = true }
+glib = { workspace = true }
+dirs = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+async-channel = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+libc = { workspace = true }
