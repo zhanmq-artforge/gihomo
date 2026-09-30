@@ -18,9 +18,9 @@ pub enum Language {
 impl Language {
     pub fn display_name(&self) -> &'static str {
         match self {
-            Language::System => "跟随系统 (System Default)",
-            Language::ZhCn => "简体中文 (Simplified Chinese)",
-            Language::EnUs => "English (英语)",
+            Language::System => "跟随系统",
+            Language::ZhCn => "简体中文",
+            Language::EnUs => "English",
         }
     }
 
@@ -537,7 +537,7 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     zh.insert("conn_src_addr", "来源地址");
     en.insert("conn_src_addr", "Source Address");
     zh.insert("conn_dst_addr", "目标地址与端口");
-    en.insert("conn_dst_addr", "Destination Address & Port");
+    en.insert("conn_dst_addr", "Destination Address &amp; Port");
     zh.insert("conn_proc_path", "所属进程路径");
     en.insert("conn_proc_path", "Process Path");
     zh.insert("conn_rule_detail", "命中规则明细");
@@ -568,6 +568,12 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("btn_clear_logs", "Clear");
     zh.insert("tooltip_clear_logs", "清空当前控制台日志");
     en.insert("tooltip_clear_logs", "Clear console logs");
+    zh.insert("log_menu_copy", "复制");
+    en.insert("log_menu_copy", "Copy");
+    zh.insert("log_menu_select_all", "全选");
+    en.insert("log_menu_select_all", "Select All");
+    zh.insert("log_menu_clear", "清空控制台");
+    en.insert("log_menu_clear", "Clear Console");
 
     // Subscriptions View
     zh.insert("btn_add_sub", "添加订阅");
@@ -783,7 +789,7 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
 
     // Settings View
     zh.insert("settings_appearance", "外观与界面语言");
-    en.insert("settings_appearance", "Appearance & Language");
+    en.insert("settings_appearance", "Appearance &amp; Language");
     zh.insert("settings_appearance_desc", "设置主题深浅风格与界面展示语言");
     en.insert(
         "settings_appearance_desc",
@@ -791,16 +797,18 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     );
     zh.insert("settings_theme", "主题色彩");
     en.insert("settings_theme", "Color Scheme");
-    zh.insert("theme_system", "跟随系统 (System Default)");
+    zh.insert("theme_system", "跟随系统");
     en.insert("theme_system", "Follow System");
-    zh.insert("theme_light", "浅色模式 (Light)");
+    zh.insert("theme_light", "浅色模式");
     en.insert("theme_light", "Light Mode");
-    zh.insert("theme_dark", "深色模式 (Dark)");
+    zh.insert("theme_dark", "深色模式");
     en.insert("theme_dark", "Dark Mode");
     zh.insert("settings_language", "界面语言");
     en.insert("settings_language", "Language");
+    zh.insert("lang_system", "跟随系统");
+    en.insert("lang_system", "System Default");
     zh.insert("settings_net_ports", "网络与核心端口");
-    en.insert("settings_net_ports", "Network & Core Ports");
+    en.insert("settings_net_ports", "Network &amp; Core Ports");
     zh.insert(
         "settings_net_ports_desc",
         "Mihomo 运行时的端口映射与外部控制接口",
@@ -811,10 +819,10 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     );
     zh.insert("settings_mixed_port", "混合代理端口 (Mixed Port)");
     en.insert("settings_mixed_port", "Mixed Proxy Port");
-    zh.insert("settings_mixed_port_sub", "7890 (HTTP & SOCKS5 共用端口)");
+    zh.insert("settings_mixed_port_sub", "7890 (HTTP &amp; SOCKS5 共用端口)");
     en.insert(
         "settings_mixed_port_sub",
-        "7890 (Shared HTTP & SOCKS5 port)",
+        "7890 (Shared HTTP &amp; SOCKS5 port)",
     );
     zh.insert(
         "settings_controller",
@@ -830,7 +838,7 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
         "127.0.0.1:9090 (REST API / WebSocket)",
     );
     zh.insert("settings_kernel", "Mihomo 内核与特权");
-    en.insert("settings_kernel", "Mihomo Kernel & Privileges");
+    en.insert("settings_kernel", "Mihomo Kernel &amp; Privileges");
     zh.insert(
         "settings_kernel_desc",
         "原生内核运行路径与 TUN 模式网络权限",

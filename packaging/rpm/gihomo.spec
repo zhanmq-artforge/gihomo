@@ -1,5 +1,5 @@
 Name:           gihomo
-Version:        1.0.0
+Version:        1.0.1
 Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 

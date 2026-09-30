@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] - 2026-09-30
+
+### 🛠️ Maintenance & Usability Improvements
+
+#### 📋 Kernel Log Console Context Menu
+* **Focused Right-Click Context Menu**: Replaced GTK4 `TextView`'s default bloated editor context menu with a clean, terminal-focused context menu containing:
+  * **Copy**: Copies selected text if a selection exists; otherwise copies the entire console log buffer.
+  * **Select All**: Selects all text currently displayed in the console buffer.
+  * **Clear Console**: Clears in-memory log entries and the active text buffer.
+* **Toolbar Streamlining**: Removed the standalone clear button from the top toolbar to prevent accidental clears when aiming for the copy button.
+
+#### 🌐 Settings & Internationalization (i18n)
+* **Language & Theme Dropdown Polish**: Removed parenthesized bilingual translation contrasts (`(System Default)`, `(Simplified Chinese)`, `(Light)`, `(Dark)`, `(英语)`), standardizing on clean and modern terminology in both language and color scheme selectors.
+* **Safe Language Reloading**: Added `is_updating_lang` re-entrancy protection to eliminate recursive notification signals when updating language models dynamically.
+* **Pango Markup Resolution**: Fixed Pango markup parse errors caused by unescaped ampersands (`&`) in `AdwPreferencesGroup` and `AdwActionRow` titles and subtitles (`settings_appearance`, `settings_net_ports`, `settings_kernel`, `settings_mixed_port_sub`, `conn_dst_addr`), allowing these sections to reliably switch to English without GTK markup warnings.
+
 ## [1.0.0] - 2026-09-30
 
 ### 🚀 Gihomo 1.0.0 Official Release (General Availability)

@@ -21,6 +21,7 @@ pub struct SettingsView {
     theme_row: adw::ComboRow,
     is_updating_theme: Rc<Cell<bool>>,
     lang_row: adw::ComboRow,
+    is_updating_lang: Rc<Cell<bool>>,
     net_group: adw::PreferencesGroup,
     mixed_port_row: adw::ActionRow,
     controller_row: adw::ActionRow,
@@ -158,14 +159,19 @@ impl SettingsView {
             .build();
 
         let lang_model = StringList::new(&[
-            "跟随系统 (System Default)",
-            "简体中文 (Simplified Chinese)",
+            tr("lang_system"),
+            "简体中文",
             "English",
         ]);
         lang_row.set_model(Some(&lang_model));
         lang_row.set_selected(current_language_config().to_index());
 
-        lang_row.connect_selected_notify(|row| {
+        let is_updating_lang = Rc::new(Cell::new(false));
+        let is_updating_lang_clone = is_updating_lang.clone();
+        lang_row.connect_selected_notify(move |row| {
+            if is_updating_lang_clone.get() {
+                return;
+            }
             let selected = row.selected();
             let lang = Language::from_index(selected);
             set_language(lang);
@@ -447,6 +453,7 @@ impl SettingsView {
             theme_row,
             is_updating_theme,
             lang_row,
+            is_updating_lang,
             net_group,
             mixed_port_row,
             controller_row,
@@ -502,6 +509,16 @@ impl SettingsView {
         self.is_updating_theme.set(false);
 
         self.lang_row.set_title(tr("settings_language"));
+        let selected_lang = current_language_config().to_index();
+        self.is_updating_lang.set(true);
+        let lang_model = StringList::new(&[
+            tr("lang_system"),
+            "简体中文",
+            "English",
+        ]);
+        self.lang_row.set_model(Some(&lang_model));
+        self.lang_row.set_selected(selected_lang);
+        self.is_updating_lang.set(false);
 
         self.net_group.set_title(tr("settings_net_ports"));
         self.net_group

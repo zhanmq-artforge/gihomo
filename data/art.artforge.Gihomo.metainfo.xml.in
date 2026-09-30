@@ -26,6 +26,11 @@
     <name>ArtForge Team</name>
   </developer>
   <releases>
+    <release version="1.0.1" date="2026-09-30">
+      <description>
+        <p>Maintenance release: Refactored kernel log console context menu, improved language selection dropdown aesthetics, and fixed Libadwaita Pango markup parsing in Preferences.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-09-30">
       <description>
         <p>Official 1.0.0 General Availability release of Gihomo: Modern native GTK4 + Libadwaita management client for Mihomo on Linux.</p>

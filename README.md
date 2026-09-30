@@ -75,7 +75,7 @@
   * Real-time search filtering, individual connection termination, and close-all with `adw::AlertDialog` confirmation.
 * **📜 Live Kernel Log Stream & Diagnostic Console**:
   * Seamless dual-source logs: preloads recent disk history (`mihomo.log`) and streams live events via WebSocket.
-  * Multi-level log filtering (All / Info / Warning / Error / Debug), keyword search, color-coded monospace console, auto-scroll, and one-click clipboard copy.
+  * Multi-level log filtering (All / Info / Warning / Error / Debug), keyword search, color-coded monospace console, auto-scroll, top-bar full copy, and focused right-click context menu (selection/full copy, select all, clear console).
 
 ---
 
@@ -152,8 +152,8 @@ cargo run
 #### Debian / Ubuntu (`.deb`)
 ```bash
 ./scripts/package-deb.sh
-# Generated artifact: dist/gihomo_1.0.0_amd64.deb
-sudo dpkg -i dist/gihomo_1.0.0_amd64.deb
+# Generated artifact: dist/gihomo_1.0.1_amd64.deb
+sudo dpkg -i dist/gihomo_1.0.1_amd64.deb
 ```
 
 #### Fedora / RHEL (`.rpm`)
@@ -173,6 +173,15 @@ cargo generate-rpm
 | `Ctrl + ,` | Open Preferences Dialog |
 | `Ctrl + Q` | Quit Application |
 | `F5` / `Ctrl + R` | Refresh Current View / Data |
+
+---
+
+### 📋 Documentation & Changelog
+
+* 📋 [Release Changelog](CHANGELOG.md) | [更新日志](CHANGELOG.zh-CN.md)
+* 📐 [Architecture Documentation](docs/Gihomo%20Architecture.md)
+* 📝 [Coding Standards](docs/Coding%20Standards.md)
+* 🌐 [Internationalization Guidelines](docs/Internationalization%20Guidelines.md)
 
 ---
 
@@ -231,7 +240,7 @@ cargo generate-rpm
   * 支持关键词即时模糊搜索过滤、单连接针对性断开与二次警示确认的全量连接一键清空。
 * **📜 内核实时日志流与诊断控制台**：
   * 双源日志无缝衔接：启动自动预加载本地历史日志文件（`mihomo.log` 最近200行）并平滑衔接 WebSocket 实时日志流；
-  * 支持按级别筛选（全部 / 信息 / 警告 / 错误 / 调试）、关键字实时检索过滤、等宽控制台高亮语法着色、自动滚屏与剪贴板一键导出。
+  * 支持按级别筛选（全部 / 信息 / 警告 / 错误 / 调试）、关键字实时检索过滤、等宽控制台高亮语法着色、自动滚屏、顶栏一键复制及专属右键上下文菜单（划词/全量复制、全选、清空控制台）。
 
 ---
 
@@ -247,6 +256,7 @@ cargo generate-rpm
 
 ### 📚 项目核心文档
 
+* 📋 [版本更新日志 (Changelog)](CHANGELOG.zh-CN.md) | [English](CHANGELOG.md)
 * 📐 [系统架构设计规范 (Gihomo Architecture)](docs/Gihomo%20Architecture.md)
 * 📝 [工程编码规范 (Coding Standards)](docs/Coding%20Standards.md)
 * 🌐 [国际化 (i18n) 开发指南 (Internationalization Guidelines)](docs/Internationalization%20Guidelines.md)
