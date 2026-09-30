@@ -1,0 +1,23 @@
+[package]
+name = "gihomo-ui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+gihomo-core = { workspace = true }
+gihomo-app = { workspace = true }
+gtk4 = { workspace = true }
+adw = { workspace = true }
+glib = { workspace = true }
+gio = { workspace = true }
+gdk4 = { workspace = true }
+async-channel = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ksni = { workspace = true }
+tokio = { workspace = true }
+dirs = { workspace = true }
