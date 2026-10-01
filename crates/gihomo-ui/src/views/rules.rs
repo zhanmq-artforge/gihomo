@@ -277,7 +277,7 @@ impl RulesView {
             });
         }
 
-        // Wire Search Entry
+        // Wire Search Entry with 200ms debounce
         {
             let rules_ref = all_rules.clone();
             let rules_group_clone = rules_group.clone();
@@ -288,23 +288,47 @@ impl RulesView {
             let curr_filter = current_filter.clone();
             let row_handles_clone = row_handles.clone();
             let is_narrow_clone = is_narrow.clone();
+            let debounce_timer = Rc::new(RefCell::new(None::<glib::SourceId>));
 
             search_entry.connect_search_changed(move |entry| {
-                let filter = entry.text().trim().to_lowercase();
-                *curr_filter.borrow_mut() = filter.clone();
-                *vis_count.borrow_mut() = PAGE_SIZE;
+                if let Some(source_id) = debounce_timer.borrow_mut().take() {
+                    source_id.remove();
+                }
 
-                Self::render_rules(
-                    &rules_ref.borrow(),
-                    &filter,
-                    *vis_count.borrow(),
-                    &rules_list_clone,
-                    &rules_group_clone,
-                    &status_pg,
-                    &load_btn,
-                    &row_handles_clone,
-                    is_narrow_clone.get(),
+                let filter = entry.text().trim().to_lowercase();
+                let rules_ref = rules_ref.clone();
+                let rules_group_clone = rules_group_clone.clone();
+                let rules_list_clone = rules_list_clone.clone();
+                let status_pg = status_pg.clone();
+                let load_btn = load_btn.clone();
+                let vis_count = vis_count.clone();
+                let curr_filter = curr_filter.clone();
+                let row_handles_clone = row_handles_clone.clone();
+                let is_narrow = is_narrow_clone.get();
+                let debounce_timer_inner = debounce_timer.clone();
+
+                let source_id = glib::timeout_add_local_once(
+                    std::time::Duration::from_millis(200),
+                    move || {
+                        *debounce_timer_inner.borrow_mut() = None;
+                        *curr_filter.borrow_mut() = filter.clone();
+                        *vis_count.borrow_mut() = PAGE_SIZE;
+
+                        Self::render_rules(
+                            &rules_ref.borrow(),
+                            &filter,
+                            *vis_count.borrow(),
+                            &rules_list_clone,
+                            &rules_group_clone,
+                            &status_pg,
+                            &load_btn,
+                            &row_handles_clone,
+                            is_narrow,
+                        );
+                    },
                 );
+
+                *debounce_timer.borrow_mut() = Some(source_id);
             });
         }
 

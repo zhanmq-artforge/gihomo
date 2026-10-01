@@ -430,6 +430,12 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("current_node_prefix", "Current: ");
     zh.insert("tooltip_ping_node", "测试单节点延迟");
     en.insert("tooltip_ping_node", "Test node latency");
+    zh.insert("proxy_search_placeholder", "搜索节点名称...");
+    en.insert("proxy_search_placeholder", "Search node name...");
+    zh.insert("empty_group_nodes", "当前策略组下无匹配节点");
+    en.insert("empty_group_nodes", "No matching nodes in this group");
+    zh.insert("proxy_group_label", "策略组:");
+    en.insert("proxy_group_label", "Group:");
 
     // Rules View
     zh.insert("rules_search_placeholder", "搜索分流规则 (域名 / IP / 策略)...");
@@ -474,6 +480,10 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("rule_match_all", "(Match all traffic)");
     zh.insert("btn_load_more", "加载更多规则...");
     en.insert("btn_load_more", "Load More Rules...");
+    zh.insert("btn_load_more_nodes", "加载更多节点...");
+    en.insert("btn_load_more_nodes", "Load more nodes...");
+    zh.insert("btn_load_more_conn", "加载更多连接...");
+    en.insert("btn_load_more_conn", "Load more connections...");
     zh.insert("btn_update", "更新");
     en.insert("btn_update", "Update");
 
@@ -484,6 +494,8 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("conn_count_badge", "{count} active connections");
     zh.insert("conn_count_filtered", "已筛选 {filtered} / {total} 个连接");
     en.insert("conn_count_filtered", "Filtered {filtered} / {total} connections");
+    zh.insert("conn_showing_top", "已显示前 {count} 条");
+    en.insert("conn_showing_top", "Showing top {count}");
     zh.insert("conn_search_placeholder", "搜索域名、IP、进程或规则...");
     en.insert("conn_search_placeholder", "Search domain, IP, process, or rule...");
     zh.insert("tooltip_refresh_conn", "刷新当前连接列表");
@@ -562,8 +574,26 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("log_search_placeholder", "Filter log keywords...");
     zh.insert("tooltip_auto_scroll", "锁定滚动到底部");
     en.insert("tooltip_auto_scroll", "Lock scroll to bottom");
+    zh.insert("btn_auto_scroll", "锁定滚动");
+    en.insert("btn_auto_scroll", "Auto Scroll");
     zh.insert("tooltip_copy_logs", "复制日志内容到剪贴板");
     en.insert("tooltip_copy_logs", "Copy logs to clipboard");
+    zh.insert("btn_copy_logs", "复制");
+    en.insert("btn_copy_logs", "Copy");
+    zh.insert("btn_copied", "已复制");
+    en.insert("btn_copied", "Copied");
+    zh.insert("btn_export_logs", "导出");
+    en.insert("btn_export_logs", "Export");
+    zh.insert("tooltip_export_logs", "导出当前日志至下载目录");
+    en.insert("tooltip_export_logs", "Export current logs to Downloads directory");
+    zh.insert("toast_export_logs_success", "日志已成功导出至下载目录: {filename}");
+    en.insert("toast_export_logs_success", "Logs successfully exported to Downloads: {filename}");
+    zh.insert("toast_export_logs_empty", "当前无日志可导出");
+    en.insert("toast_export_logs_empty", "No logs available to export");
+    zh.insert("toast_export_logs_failed", "导出日志文件失败");
+    en.insert("toast_export_logs_failed", "Failed to export log file");
+    zh.insert("toast_copy_logs_success", "已复制当前日志至剪贴板");
+    en.insert("toast_copy_logs_success", "Current logs copied to clipboard");
     zh.insert("btn_clear_logs", "清空");
     en.insert("btn_clear_logs", "Clear");
     zh.insert("tooltip_clear_logs", "清空当前控制台日志");
@@ -578,6 +608,8 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     // Subscriptions View
     zh.insert("btn_add_sub", "添加订阅");
     en.insert("btn_add_sub", "Add Subscription");
+    zh.insert("btn_add", "添加");
+    en.insert("btn_add", "Add");
     zh.insert("btn_update_all_subs", "更新全部");
     en.insert("btn_update_all_subs", "Update All");
     zh.insert("tooltip_update_all_subs", "更新所有订阅和本地配置");

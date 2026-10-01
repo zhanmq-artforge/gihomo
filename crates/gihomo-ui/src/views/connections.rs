@@ -7,6 +7,10 @@ use std::rc::Rc;
 
 use crate::i18n::tr;
 
+const CONN_PAGE_SIZE: usize = 80;
+const CONN_LOAD_MORE_STEP: usize = 80;
+
+#[derive(Clone)]
 pub struct ConnectionsView {
     pub page: adw::NavigationPage,
     list_box: gtk4::Box,
@@ -14,12 +18,14 @@ pub struct ConnectionsView {
     search_entry: SearchEntry,
     close_all_btn: Button,
     refresh_btn: Button,
+    load_more_btn: Button,
     spinner: gtk4::Spinner,
     service: AppService,
     parent_window: Rc<RefCell<Option<gtk4::Window>>>,
     cached_snapshot: Rc<RefCell<Option<ConnectionsSnapshot>>>,
     is_fetching: Rc<Cell<bool>>,
     search_query: Rc<RefCell<String>>,
+    visible_count: Rc<RefCell<usize>>,
 }
 
 impl ConnectionsView {
@@ -86,9 +92,20 @@ impl ConnectionsView {
         let list_box = gtk4::Box::new(Orientation::Vertical, 12);
         list_box.set_visible(false);
 
+        // 4. Load more button
+        let load_more_btn = Button::builder()
+            .label(tr("btn_load_more_conn"))
+            .css_classes(["suggested-action", "pill"])
+            .halign(gtk4::Align::Center)
+            .margin_top(12)
+            .margin_bottom(12)
+            .visible(false)
+            .build();
+
         content_box.append(&top_bar);
         content_box.append(&status_page);
         content_box.append(&list_box);
+        content_box.append(&load_more_btn);
 
         clamp.set_child(Some(&content_box));
 
@@ -111,6 +128,7 @@ impl ConnectionsView {
         let cached_snapshot: Rc<RefCell<Option<ConnectionsSnapshot>>> = Rc::new(RefCell::new(None));
         let is_fetching = Rc::new(Cell::new(false));
         let search_query = Rc::new(RefCell::new(String::new()));
+        let visible_count = Rc::new(RefCell::new(CONN_PAGE_SIZE));
 
         let view = Self {
             page,
@@ -119,12 +137,14 @@ impl ConnectionsView {
             search_entry,
             close_all_btn,
             refresh_btn,
+            load_more_btn,
             spinner,
             service,
             parent_window,
             cached_snapshot,
             is_fetching,
             search_query,
+            visible_count,
         };
 
         view.bind_signals();
@@ -136,12 +156,44 @@ impl ConnectionsView {
     }
 
     fn bind_signals(&self) {
-        // Search filter input
+        // Search filter input with 200ms debounce
         {
             let query_ref = self.search_query.clone();
+            let visible_count_ref = self.visible_count.clone();
             let view_weak = self.downgrade_handle();
+            let debounce_timer = Rc::new(RefCell::new(None::<glib::SourceId>));
             self.search_entry.connect_search_changed(move |entry| {
-                *query_ref.borrow_mut() = entry.text().trim().to_lowercase();
+                if let Some(source_id) = debounce_timer.borrow_mut().take() {
+                    source_id.remove();
+                }
+
+                let text = entry.text().trim().to_lowercase();
+                let query_ref = query_ref.clone();
+                let visible_count_ref = visible_count_ref.clone();
+                let view_weak = view_weak.clone();
+                let debounce_timer_inner = debounce_timer.clone();
+
+                let source_id = glib::timeout_add_local_once(
+                    std::time::Duration::from_millis(200),
+                    move || {
+                        *debounce_timer_inner.borrow_mut() = None;
+                        *query_ref.borrow_mut() = text;
+                        *visible_count_ref.borrow_mut() = CONN_PAGE_SIZE;
+                        if let Some(view) = view_weak.upgrade() {
+                            view.re_render_cached();
+                        }
+                    },
+                );
+                *debounce_timer.borrow_mut() = Some(source_id);
+            });
+        }
+
+        // Load more connections button
+        {
+            let view_weak = self.downgrade_handle();
+            let visible_count_ref = self.visible_count.clone();
+            self.load_more_btn.connect_clicked(move |_| {
+                *visible_count_ref.borrow_mut() += CONN_LOAD_MORE_STEP;
                 if let Some(view) = view_weak.upgrade() {
                     view.re_render_cached();
                 }
@@ -260,6 +312,7 @@ impl ConnectionsView {
         self.status_page.set_visible(true);
         self.list_box.set_visible(false);
         self.close_all_btn.set_sensitive(false);
+        self.load_more_btn.set_visible(false);
     }
 
     fn render_snapshot(&self, snapshot: &ConnectionsSnapshot) {
@@ -297,6 +350,7 @@ impl ConnectionsView {
             self.status_page.set_visible(true);
             self.list_box.set_visible(false);
             self.close_all_btn.set_sensitive(false);
+            self.load_more_btn.set_visible(false);
             return;
         }
 
@@ -304,12 +358,30 @@ impl ConnectionsView {
         self.status_page.set_visible(false);
         self.list_box.set_visible(true);
 
-        let count_str = if query.is_empty() {
+        let visible_limit = *self.visible_count.borrow();
+        let total_filtered = filtered.len();
+        let display_items = if total_filtered > visible_limit {
+            &filtered[..visible_limit]
+        } else {
+            &filtered[..]
+        };
+
+        let base_count_str = if query.is_empty() {
             tr("conn_count_badge").replace("{count}", &total_count.to_string())
         } else {
             tr("conn_count_filtered")
-                .replace("{filtered}", &filtered.len().to_string())
+                .replace("{filtered}", &total_filtered.to_string())
                 .replace("{total}", &total_count.to_string())
+        };
+
+        let count_str = if total_filtered > visible_limit {
+            format!(
+                "{} ({})",
+                base_count_str,
+                tr("conn_showing_top").replace("{count}", &display_items.len().to_string())
+            )
+        } else {
+            base_count_str
         };
 
         let desc_text = format!("{} · ↑ {}  ↓ {}", count_str, up_total_str, down_total_str);
@@ -319,7 +391,7 @@ impl ConnectionsView {
             .description(&desc_text)
             .build();
 
-        for conn in filtered {
+        for conn in display_items {
             let expander = adw::ExpanderRow::builder()
                 .title(conn.metadata.destination())
                 .title_lines(1)
@@ -452,6 +524,15 @@ impl ConnectionsView {
         }
 
         self.list_box.append(&group);
+
+        if total_filtered > visible_limit {
+            let remaining = total_filtered - visible_limit;
+            self.load_more_btn
+                .set_label(&format!("{} ({})", tr("btn_load_more_conn"), remaining));
+            self.load_more_btn.set_visible(true);
+        } else {
+            self.load_more_btn.set_visible(false);
+        }
     }
 
     pub fn update_ui_text(&self) {
@@ -462,6 +543,7 @@ impl ConnectionsView {
             .set_tooltip_text(Some(tr("tooltip_refresh_conn")));
         self.close_all_btn
             .set_tooltip_text(Some(tr("tooltip_close_all_conn")));
+        self.load_more_btn.set_label(tr("btn_load_more_conn"));
         self.status_page.set_title(tr("conn_empty_title"));
         self.status_page
             .set_description(Some(tr("conn_empty_desc")));
@@ -469,55 +551,11 @@ impl ConnectionsView {
         self.re_render_cached();
     }
 
-    fn downgrade_handle(&self) -> ConnectionsViewWeak {
-        ConnectionsViewWeak {
-            page: self.page.clone(),
-            list_box: self.list_box.clone(),
-            status_page: self.status_page.clone(),
-            search_entry: self.search_entry.clone(),
-            close_all_btn: self.close_all_btn.clone(),
-            refresh_btn: self.refresh_btn.clone(),
-            spinner: self.spinner.clone(),
-            service: self.service.clone(),
-            parent_window: self.parent_window.clone(),
-            cached_snapshot: self.cached_snapshot.clone(),
-            is_fetching: self.is_fetching.clone(),
-            search_query: self.search_query.clone(),
-        }
+    fn downgrade_handle(&self) -> Self {
+        self.clone()
     }
-}
 
-#[derive(Clone)]
-struct ConnectionsViewWeak {
-    page: adw::NavigationPage,
-    list_box: gtk4::Box,
-    status_page: adw::StatusPage,
-    search_entry: SearchEntry,
-    close_all_btn: Button,
-    refresh_btn: Button,
-    spinner: gtk4::Spinner,
-    service: AppService,
-    parent_window: Rc<RefCell<Option<gtk4::Window>>>,
-    cached_snapshot: Rc<RefCell<Option<ConnectionsSnapshot>>>,
-    is_fetching: Rc<Cell<bool>>,
-    search_query: Rc<RefCell<String>>,
-}
-
-impl ConnectionsViewWeak {
-    fn upgrade(&self) -> Option<ConnectionsView> {
-        Some(ConnectionsView {
-            page: self.page.clone(),
-            list_box: self.list_box.clone(),
-            status_page: self.status_page.clone(),
-            search_entry: self.search_entry.clone(),
-            close_all_btn: self.close_all_btn.clone(),
-            refresh_btn: self.refresh_btn.clone(),
-            spinner: self.spinner.clone(),
-            service: self.service.clone(),
-            parent_window: self.parent_window.clone(),
-            cached_snapshot: self.cached_snapshot.clone(),
-            is_fetching: self.is_fetching.clone(),
-            search_query: self.search_query.clone(),
-        })
+    fn upgrade(&self) -> Option<Self> {
+        Some(self.clone())
     }
 }

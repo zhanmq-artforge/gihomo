@@ -28,15 +28,12 @@ impl KernelManager {
         }
 
         // Try discovering via PATH
-        if let Ok(output) = std::process::Command::new("which").arg("mihomo").output() {
-            if output.status.success() {
-                let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if !path_str.is_empty() {
-                    let path = PathBuf::from(path_str);
-                    if path.is_file() {
-                        debug!("Found Mihomo kernel in PATH at {:?}", path);
-                        return Some(path);
-                    }
+        if let Some(paths) = std::env::var_os("PATH") {
+            for dir in std::env::split_paths(&paths) {
+                let candidate = dir.join("mihomo");
+                if candidate.is_file() {
+                    debug!("Found Mihomo kernel in PATH at {:?}", candidate);
+                    return Some(candidate);
                 }
             }
         }

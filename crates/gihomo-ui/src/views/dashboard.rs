@@ -537,33 +537,22 @@ impl DashboardView {
     }
 
     pub fn update_traffic(&self, stats: &TrafficStats) {
-        let (last_up, last_down) = *self.last_traffic.borrow();
-        let up_rate = if stats.up_total >= last_up && last_up > 0 {
-            stats.up_total - last_up
-        } else {
-            0
-        };
-        let down_rate = if stats.down_total >= last_down && last_down > 0 {
-            stats.down_total - last_down
-        } else {
-            0
-        };
         *self.last_traffic.borrow_mut() = (stats.up_total, stats.down_total);
 
         self.upload_speed_label
-            .set_label(&format!("{}/s", format_speed(up_rate)));
+            .set_label(&format!("{}/s", format_speed(stats.up)));
         self.download_speed_label
-            .set_label(&format!("{}/s", format_speed(down_rate)));
+            .set_label(&format!("{}/s", format_speed(stats.down)));
 
         self.upload_total_label.set_label(&format!(
             "{}{}",
             tr("total_prefix"),
-            format_bytes(stats.up_total)
+            SubscriptionUserInfo::format_bytes(stats.up_total)
         ));
         self.download_total_label.set_label(&format!(
             "{}{}",
             tr("total_prefix"),
-            format_bytes(stats.down_total)
+            SubscriptionUserInfo::format_bytes(stats.down_total)
         ));
     }
 
@@ -629,22 +618,6 @@ impl DashboardView {
     }
 }
 
-fn format_bytes(bytes: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = 1024 * KB;
-    const GB: u64 = 1024 * MB;
-
-    if bytes >= GB {
-        format!("{:.2} GB", bytes as f64 / GB as f64)
-    } else if bytes >= MB {
-        format!("{:.2} MB", bytes as f64 / MB as f64)
-    } else if bytes >= KB {
-        format!("{:.2} KB", bytes as f64 / KB as f64)
-    } else {
-        format!("{} B", bytes)
-    }
-}
-
 fn format_speed(bytes_per_sec: u64) -> String {
-    format_bytes(bytes_per_sec)
+    SubscriptionUserInfo::format_bytes(bytes_per_sec)
 }

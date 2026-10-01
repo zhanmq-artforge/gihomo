@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2026-10-01
+
+### ⚡ Architecture, Security, High-Concurrency & UI/UX Evolution
+
+#### 🛡️ Security & Protocol Compliance
+* **Local Loopback Controller Binding**: Enforced strict `127.0.0.1` binding for `external-controller`, completely eliminating LAN exposure risks from binding to `0.0.0.0`.
+* **HTTP 304 (Not Modified) Subscription Handling**: Properly recognized HTTP 304 responses during subscription updates. Retains existing configuration while updating metadata (ETag, bandwidth quota, timestamp), eliminating redundant kernel reloads and false error reports.
+* **Pure Rust Kernel Discovery**: Replaced synchronous child process calls to `which` with `std::env::split_paths`, improving kernel discovery speed and portability across minimal environments without external tools.
+
+#### 🚀 Memory Protection & High-Concurrency Performance
+* **Log Console Memory Protection**: Introduced `MAX_BUFFER_LINES = 3000` auto-pruning to eliminate unbounded memory growth during long uptimes; migrated from `Vec` to `VecDeque` for $O(1)$ head eviction; batched incoming WebSocket log lines into `TextBuffer`.
+* **Connections Lazy Pagination (Anti-Crash)**: Implemented chunked lazy loading (`CONN_PAGE_SIZE = 80`) with a `Load more connections... (remaining X)` capsule button, preventing GTK4 rendering freezes under high-concurrency workloads (e.g. BT/PT or thousands of open sockets).
+* **In-Place Proxy Diff Updates**: Implemented in-place proxy group and node updates when structure matches, preventing scrollbar jumps and UI flickering during automatic or manual latency refreshes.
+* **Universal Search Debounce**: Added 200ms debounce across Connections, Rules, and Logs search entries, avoiding continuous regex evaluation and frame drops during rapid typing.
+* **Accurate Traffic Rates**: Consumed real-time speed metrics directly from the kernel WebSocket stream, eliminating speed calculation jitter and zero-drop anomalies caused by polling diffs.
+
+#### 🎨 Native GNOME HIG & UI / UX Overhaul
+* **Proxies View Architecture Refinement**:
+  * Extracted proxy group header into a standalone native header (title, wrapped multi-line subtitle, test latency and refresh buttons) instead of embedding fake controls inside card lists.
+  * Standardized proxy group switching using Libadwaita's native `gtk::DropDown`, eliminating hacky custom CSS and restoring system theme consistency.
+  * Added single-connection in-place termination in the active connection list.
+* **Kernel Logs View Toolbar & One-Click Export**:
+  * Rebuilt top controls into a clean dual-row layout:
+    * Row 1: Level filter dropdown (`All` / `Info` / `Warning` / `Error` / `Debug`) + keyword search entry.
+    * Row 2: Compact icon toolbar with tooltips (`[⬇️ Auto-Scroll Toggle]`, `[📋 Copy]`, `[💾 Export]`, `[🗑️ Clear]`).
+  * **One-Click Log Export**: Added direct export to user's download directory (`~/Downloads/gihomo-kernel-YYYYMMDD-HHMMSS.log`) with visual checkmark feedback and Toast confirmation.
+  * Replaced copy text with green checkmark feedback animation; decluttered the view by removing redundant context menus.
+* **Subscription Dialogs GNOME HIG Modernization**:
+  * **Native Adaptive Dialog (`adw::Dialog`)**: Refactored both "Add Subscription" and "Edit Subscription" from fixed-size floating windows (`adw::Window` 520x580) into modern Libadwaita adaptive dialog sheets with `content_width: 360`.
+  * **Standard HeaderBar Controls**: Replaced bottom action buttons with standard HeaderBar navigation: `[Cancel]` on the top-left and `[Add]` / `[Save]` on the top-right (with input validation and Enter key submission).
+  * **Narrow Screen (360px) Fitting & Truncation Fixes**:
+    * Added `ellipsize(End)` to node import guidance labels to prevent single long labels from exceeding the minimum container width.
+    * Replaced the text "Paste from Clipboard" button with a compact icon button (`edit-paste-symbolic`) with tooltip.
+    * Set `subtitle_lines(1)` on local file path rows to prevent horizontal overflow in narrow mobile/tiled views.
+
+#### 📦 Packaging & Build
+* Bumped project version to `1.0.2` across `Cargo.toml`, `Cargo.lock`, and Debian packaging scripts (`scripts/package-deb.sh`).
+* Verified clean `.deb` package generation targeting `dist/gihomo_1.0.2_amd64.deb`.
+
 ## [1.0.1] - 2026-09-30
 
 ### 🛠️ Maintenance & Usability Improvements

@@ -24,7 +24,8 @@
 
 * **⚡ Native Embedded Mihomo Kernel Supervision**:
   * Direct process supervision powered by Tokio asynchronous runtime — zero containers or virtualization dependencies.
-  * Multi-tier kernel discovery: Bundled system path (`/usr/lib/gihomo/bin/mihomo`) $\to$ User local path (`~/.local/share/art.artforge.Gihomo/bin/mihomo`) $\to$ System `$PATH`.
+  * Multi-tier pure Rust kernel discovery (`std::env::split_paths`): Bundled system path (`/usr/lib/gihomo/bin/mihomo`) $\to$ User local path (`~/.local/share/art.artforge.Gihomo/bin/mihomo`) $\to$ System `$PATH`.
+  * Strict `127.0.0.1` local loopback controller binding to eliminate unauthorized LAN access risks.
   * Real-time child process lifecycle management with automatic PID file tracking and clean termination on exit.
 * **🛡️ Zero-Password Seamless TUN Mode**:
   * Linux file capabilities (`CAP_NET_ADMIN` + `CAP_NET_BIND_SERVICE`) allow running TUN interfaces without root privileges.
@@ -40,7 +41,7 @@
   * Auto-detects system locale on startup with graceful English fallback.
   * Preferences dialog (`Ctrl+,`) with **instant zero-restart live language and theme switching**.
 * **📊 Real-time Telemetry & Traffic Monitoring**:
-  * High-frequency WebSocket streaming from Mihomo's controller API.
+  * High-frequency WebSocket streaming from Mihomo's controller API consuming real-time instant speeds without jitter.
   * Real-time upstream and downstream throughput gauges and session bandwidth accumulators.
 * **🔔 Native System Tray & Background Daemon Integration**:
   * Pure Rust D-Bus StatusNotifierItem (SNI) integration via `ksni`, fully compatible with GNOME Shell (AppIndicator), KDE Plasma, XFCE, and Sway.
@@ -50,32 +51,39 @@
 * **🚀 Ultra-Lightweight Native Resource Footprint**:
   * Native Mihomo kernel ~60MB RAM + Native GTK4/Libadwaita UI ~170MB RAM $\approx$ **~230MB total memory consumption** (only ~1/3 to 1/4 of Chromium/Electron-based proxy clients consuming 700–800MB+).
 * **🎯 Active Routing Rules Inspection & Real-Time Search**:
-  * Dedicated **Rules View** with instant keyword search across active rules (by domain suffix, IP-CIDR, GeoIP, process name, or target proxy).
+  * Dedicated **Rules View** with 200ms debounced instant keyword search across active rules (by domain suffix, IP-CIDR, GeoIP, process name, or target proxy).
   * Color-coded badges for quick identification of rule types and target policies (`DIRECT`, `REJECT`, `PROXY`).
   * External Rule Providers management with one-click upstream update triggers.
   * Optimized list virtualization supporting thousands of rules without UI stutter.
-* **⚡ Granular Single-Node & Batch Latency Testing**:
-  * Individual on-demand node latency probing alongside whole-group testing with responsive loading states.
-  * Color-graded latency badges (Green < 400ms, Orange 400-1000ms, Red > 1000ms / Timeout).
+* **⚡ Native Proxy Selection & Granular Latency Testing**:
+  * Standalone clean header with proxy group title, wrapped multi-line subtitle, and batch testing controls.
+  * Standardized Libadwaita `gtk::DropDown` selector for proxy groups, free of custom CSS hacks.
+  * In-place diff updates: refreshes latency badges and selections without scroll jumps or list re-rendering.
+  * Individual on-demand node latency probing with color-graded badges (Green < 400ms, Orange 400-1000ms, Red > 1000ms / Timeout).
 * **🌍 GeoIP & GeoSite Database Management**:
   * Built-in Geo database manager inspecting file presence, file size, and last updated timestamps.
   * One-click upstream database updater pulling directly from official/mirror sources with automatic kernel reload.
 * **🛡️ Hardened Exit Safety & Process Supervision**:
   * Linux `PR_SET_PDEATHSIG` child process protection ensures the Mihomo kernel terminates immediately if the parent process exits, preventing orphan processes and port conflicts.
   * Coordinated teardown hook on exit resets GNOME system proxy to direct mode, eliminating the risk of network loss after closing the client.
-* **📑 Subscription & Proxy Group Management**:
-  * Multi-subscription management with remote URL download, ETag caching, and local YAML storage.
+* **📑 Adaptive Subscription Dialogs & Configuration Merging**:
+  * Multi-subscription management with remote URL download, ETag & HTTP 304 caching, and local YAML storage.
+  * **GNOME HIG Adaptive Dialogs**: Add and Edit subscriptions powered by modern `adw::Dialog` with compact 360px layout, standard HeaderBar navigation (`[Cancel]` / `[Add]` / `[Save]`), and Enter-key submission.
   * Native offline parsing of proxy share links (`ss://`, `vmess://`, `vless://`, `trojan://`, `hysteria2://`) with batch import, live preview, and automatic clipboard detection.
   * Background periodic auto-refresh scheduler with native preset intervals (Never, 30m, 1h, 2h, 6h, 12h, 24h).
   * Subscription traffic quota parsing via `Subscription-UserInfo` headers (upload, download, total, and expiry date).
   * Structural deep-merging that preserves high-end directives like `sniffer`, `hosts`, `geox-url`, and custom DNS policies.
-* **🔍 Real-Time Connection Monitoring**:
+* **🔍 Real-Time High-Concurrency Connection Monitoring**:
+  * Anti-crash chunked pagination (`CONN_PAGE_SIZE = 80`) with `[Load more connections... (remaining X)]` capsule button, effortlessly handling thousands of concurrent connections.
   * Detailed TCP/UDP active connection tracking with cumulative traffic and live speeds.
   * Comprehensive metadata inspection: host, destination IP/port, process name, inbound interface, rule chain, and proxy path.
-  * Real-time search filtering, individual connection termination, and close-all with `adw::AlertDialog` confirmation.
-* **📜 Live Kernel Log Stream & Diagnostic Console**:
-  * Seamless dual-source logs: preloads recent disk history (`mihomo.log`) and streams live events via WebSocket.
-  * Multi-level log filtering (All / Info / Warning / Error / Debug), keyword search, color-coded monospace console, auto-scroll, top-bar full copy, and focused right-click context menu (selection/full copy, select all, clear console).
+  * Real-time search filtering with 200ms debounce, in-place single connection termination, and close-all with `adw::AlertDialog` confirmation.
+* **📜 High-Performance Kernel Log Stream & Diagnostic Console**:
+  * Seamless dual-source logs: preloads recent disk history (`mihomo.log`) and streams live events via WebSocket with $O(1)$ circular queue buffer (3,000-line memory protection).
+  * Clean dual-row top toolbar:
+    * Row 1: Level filter (`All` / `Info` / `Warning` / `Error` / `Debug`) and 200ms debounced keyword search.
+    * Row 2: Compact icon buttons with tooltips for Auto-Scroll toggle, Copy (with checkmark feedback), One-Click Export to Downloads, and Clear Console.
+  * **One-Click Download/Export**: Exports full logs directly to `~/Downloads/gihomo-kernel-YYYYMMDD-HHMMSS.log` with instant Toast confirmation.
 
 ---
 
@@ -152,8 +160,8 @@ cargo run
 #### Debian / Ubuntu (`.deb`)
 ```bash
 ./scripts/package-deb.sh
-# Generated artifact: dist/gihomo_1.0.1_amd64.deb
-sudo dpkg -i dist/gihomo_1.0.1_amd64.deb
+# Generated artifact: dist/gihomo_1.0.2_amd64.deb
+sudo dpkg -i dist/gihomo_1.0.2_amd64.deb
 ```
 
 #### Fedora / RHEL (`.rpm`)
@@ -192,7 +200,8 @@ cargo generate-rpm
 
 * **⚡ 原生嵌入式 Mihomo 内核进程直接驱动**：
   * 基于 Tokio 异步多线程驱动，纯原生子进程直接托管与生命周期监管，彻底告别容器依赖与虚拟化开销；
-  * 多级内核发现引擎：安装包内置路径（`/usr/lib/gihomo/bin/mihomo`） $\to$ 用户私有路径（`~/.local/share/art.artforge.Gihomo/bin/mihomo`） $\to$ 系统全局 `$PATH`。
+  * 纯 Rust 内核发现引擎（`std::env::split_paths`，免除外部 `which` 子进程）：安装包内置路径（`/usr/lib/gihomo/bin/mihomo`） $\to$ 用户私有路径（`~/.local/share/art.artforge.Gihomo/bin/mihomo`） $\to$ 系统全局 `$PATH`；
+  * 控制器强制绑定 `127.0.0.1` 本地安全回环，彻底消除局域网未授权控制风险。
 * **🛡️ 免密码极速全局 TUN 模式**：
   * 内核二进制预置 `CAP_NET_ADMIN` 与 `CAP_NET_BIND_SERVICE` 文件权能，无需 root 提权即可操作内核虚拟网卡；
   * 集成标准 FreeDesktop Polkit 策略文件（`/usr/share/polkit-1/rules.d/art.artforge.Gihomo.rules`），授权 `systemd-resolved` D-Bus 接口配置 DNS 劫持，**彻底终结开启 TUN 时的多次密码弹窗困扰**。
@@ -203,13 +212,15 @@ cargo generate-rpm
   * 深度集成 GNOME GSettings（`org.gnome.system.proxy`），一键同步系统 HTTP/Socks 代理设置；
   * 原生支持深色、浅色与跟随系统主题切换。
 * **🎯 实时分流规则检索与规则集（Rule Providers）管理**：
-  * 独立“分流规则”视图，支持根据域名、IP-CIDR、GeoIP、目标策略实时关键字毫秒级过滤检索；
+  * 独立“分流规则”视图，支持 200ms 防抖的毫秒级域名、IP-CIDR、GeoIP、目标策略关键字过滤检索；
   * 规则类型与策略指向颜色徽章分级（`DIRECT` 绿色、`REJECT` 红色、`PROXY` 品牌蓝）；
   * 外部规则集（Rule Providers）状态追踪与一键手动拉取更新；
   * 采用分段虚拟渲染优化，轻松承载上万条分流规则极速滚动不卡顿。
-* **⚡ 细粒度单节点独立测速与整组批量测速**：
-  * 节点列表中每个节点均支持单节点独立延迟测速，提供色彩分级 Badge 反馈（绿色 < 400ms、橙色 400-1000ms、红色 > 1000ms 或超时）；
-  * 保持策略组整组一键并行测速能力。
+* **⚡ 原生节点选择与细粒度延迟测速**：
+  * 独立规范原生 Header，展示策略组标题、换行副标题与批量测速/刷新操作；
+  * 策略组切换采用原生 Libadwaita `gtk::DropDown` 下拉控件，彻底移除多余自定义 CSS，体验高度贴合 GNOME 桌面；
+  * 原地增量刷新（In-Place Diff Update）：节点列表刷新与测速结果更新时原地更新数据，不重建控件，彻底消除滚动条跳动与界面闪烁；
+  * 节点列表中每个节点均支持单节点独立延迟测速，提供色彩分级 Badge 反馈（绿色 < 400ms、橙色 400-1000ms、红色 > 1000ms 或超时）。
 * **🌍 GeoIP 与 GeoSite 数据库管理**：
   * “设置”界面内置 Geo 数据库看板，清晰显示数据库存在状态、文件体积与最后更新时间；
   * 支持官方源及镜像加速一键在线更新，更新后自动触发内核配置热重载。
@@ -227,20 +238,25 @@ cargo generate-rpm
   * 完整支持 **简体中文 (`zh-CN`)** 与 **English (`en-US`)**；
   * 启动自动侦测系统 Locale，偏好设置（`Ctrl+,`）支持**即时热重载**，切换后界面毫秒级无感刷新，无需重启程序。
 * **📊 实时流量与网络遥测**：
-  * WebSocket 实时直连内核事件流，毫秒级呈现上下行瞬时速率与当次累计消耗流量。
-* **📑 订阅管理与配置保真深度合成**：
-  * 支持多订阅托管、远程链接异步抓取、ETag 智能缓存与本地 YAML 存储；
+  * WebSocket 实时直连内核事件流，毫秒级直接呈现上下行瞬时速率，消除速率抖动与当次累计消耗流量。
+* **📑 现代自适应订阅管理与配置保真深度合成**：
+  * 支持多订阅托管、远程链接异步抓取、ETag 与 HTTP 304 智能缓存（保留本地配置免去无谓内核重载）与本地 YAML 存储；
+  * **GNOME HIG 原生自适应弹窗**：添加/编辑订阅升级为现代化 `adw::Dialog` 浮层设计，完美适配 360px 极窄视口，HeaderBar 左取消右确认，回车快捷提交；
   * 纯本地离线解析单节点分享链接（`ss://`, `vmess://`, `vless://`, `trojan://`, `hysteria2://`），支持多行批量导入、实时解析预览与智能剪贴板感知；
   * 后台定时自动增量更新调度器，提供原生下拉周期选项（不自动更新、30分钟、1/2/6/12/24小时）；
   * 深度逆向合并策略完整保留订阅中的 `sniffer` 域名嗅探、`hosts` 自定义解析、`geox-url` 加速源与自定义分流 DNS；
   * 自动解析机场 `Subscription-UserInfo` 响应头（已用上传、已用下载、总流量配额与过期时间）。
-* **🔍 实时活跃连接监控与分析**：
+* **🔍 高并发连接监控与防爆分页**：
+  * 引入 `CONN_PAGE_SIZE = 80` 分批懒加载机制与 `[加载更多连接... (剩余 X 条)]` 胶囊按钮，轻松应对 BT/PT 与海量并发连接，杜绝界面渲染卡死；
   * 详尽的 TCP/UDP 活跃连接实时追踪，统计上下行累计流量与瞬时传输速率；
   * 深度元数据透视：域名主机、目标 IP/端口、关联源进程、入站类型、匹配分流规则及代理节点链；
-  * 支持关键词即时模糊搜索过滤、单连接针对性断开与二次警示确认的全量连接一键清空。
-* **📜 内核实时日志流与诊断控制台**：
-  * 双源日志无缝衔接：启动自动预加载本地历史日志文件（`mihomo.log` 最近200行）并平滑衔接 WebSocket 实时日志流；
-  * 支持按级别筛选（全部 / 信息 / 警告 / 错误 / 调试）、关键字实时检索过滤、等宽控制台高亮语法着色、自动滚屏、顶栏一键复制及专属右键上下文菜单（划词/全量复制、全选、清空控制台）。
+  * 支持 200ms 防抖关键词即时模糊过滤、单连接就地针对性断开与二次警示确认的全量连接一键清空。
+* **📜 实时内核日志流与诊断控制台**：
+  * 双源日志无缝衔接：启动自动预加载本地历史日志文件（`mihomo.log` 最近200行）并平滑衔接 WebSocket 实时日志流，引入 3000 行环形队列（$O(1)$ 出队）内存防爆机制；
+  * 规范的双行顶栏布局：
+    * 第一行：日志级别下拉筛选（全部 / 信息 / 警告 / 错误 / 调试）与 200ms 防抖关键字检索；
+    * 第二行：纯图标按钮栏（带悬停 Tooltip）：滚动锁定切换、复制（带打勾动效）、一键导出到下载目录、清空控制台；
+  * **一键导出至下载目录**：一键将控制台全部日志导出保存至用户下载目录（`~/Downloads/gihomo-kernel-YYYYMMDD-HHMMSS.log`），伴随 Toast 即时反馈。
 
 ---
 

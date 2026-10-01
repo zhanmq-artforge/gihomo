@@ -10,7 +10,7 @@ cd "$PROJECT_ROOT"
 
 APP_ID="art.artforge.Gihomo"
 PKG_NAME="gihomo"
-PKG_VERSION="1.0.1"
+PKG_VERSION="1.0.2"
 PKG_ARCH="amd64"
 OUTPUT_DIR="${PROJECT_ROOT}/dist"
 DEB_DIR="target/debian/${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}"
@@ -42,6 +42,9 @@ if [ -f "${PROJECT_ROOT}/assets/mihomo" ]; then
 elif [ -f "${HOME}/.local/share/art.artforge.Gihomo/bin/mihomo" ]; then
     echo "    Using Mihomo kernel from user directory"
     cp "${HOME}/.local/share/art.artforge.Gihomo/bin/mihomo" "${KERNEL_DEST}"
+elif [ -f "/usr/lib/gihomo/bin/mihomo" ]; then
+    echo "    Using system installed Mihomo kernel"
+    cp "/usr/lib/gihomo/bin/mihomo" "${KERNEL_DEST}"
 else
     echo "    Downloading official Mihomo kernel..."
     MIHOMO_VER="v1.19.31"

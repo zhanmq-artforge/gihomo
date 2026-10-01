@@ -9,5 +9,5 @@ pub use api::MihomoApiClient;
 pub use autostart::{is_autostart_enabled, set_autostart};
 pub use error::InfraError;
 pub use kernel::KernelManager;
-pub use storage::{StorageManager, APP_ID};
+pub use storage::{RemoteSubscriptionDownload, StorageManager, APP_ID};
 pub use sysproxy::SystemProxyManager;

@@ -6,10 +6,15 @@ use gtk4::{
     TextView, ToggleButton,
 };
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::rc::Rc;
 
 use crate::i18n::tr;
 
+const MAX_BUFFER_LINES: i32 = 3000;
+const TRIM_CHUNK_LINES: i32 = 200;
+
+#[derive(Clone)]
 pub struct LogsView {
     pub page: adw::NavigationPage,
     text_view: TextView,
@@ -18,9 +23,10 @@ pub struct LogsView {
     level_dropdown: DropDown,
     auto_scroll_btn: ToggleButton,
     copy_btn: Button,
-    popover: gtk4::PopoverMenu,
+    export_btn: Button,
+    clear_btn: Button,
     service: AppService,
-    all_logs: Rc<RefCell<Vec<LogMessage>>>,
+    all_logs: Rc<RefCell<VecDeque<LogMessage>>>,
     auto_scroll_enabled: Rc<Cell<bool>>,
     search_filter: Rc<RefCell<String>>,
     level_filter: Rc<Cell<u32>>, // 0: All, 1: Info, 2: Warning, 3: Error, 4: Debug
@@ -52,15 +58,31 @@ impl LogsView {
             .css_classes(["flat"])
             .build();
 
+        // Export button
+        let export_btn = Button::builder()
+            .icon_name("document-save-symbolic")
+            .tooltip_text(tr("tooltip_export_logs"))
+            .valign(gtk4::Align::Center)
+            .css_classes(["flat"])
+            .build();
+
+        // Clear button
+        let clear_btn = Button::builder()
+            .icon_name("user-trash-symbolic")
+            .tooltip_text(tr("tooltip_clear_logs"))
+            .valign(gtk4::Align::Center)
+            .css_classes(["flat"])
+            .build();
+
         let toolbar_view = adw::ToolbarView::new();
         toolbar_view.add_top_bar(&header_bar);
 
-        // 1. Top Controls Bar
-        let top_bar = gtk4::Box::new(Orientation::Horizontal, 8);
-        top_bar.set_margin_top(8);
-        top_bar.set_margin_bottom(8);
-        top_bar.set_margin_start(12);
-        top_bar.set_margin_end(12);
+        // 1. Top Controls Bar: Two rows
+        let top_box = gtk4::Box::new(Orientation::Vertical, 8);
+        top_box.set_margin_top(8);
+        top_box.set_margin_bottom(8);
+        top_box.set_margin_start(12);
+        top_box.set_margin_end(12);
 
         // Log Level DropDown
         let levels = [
@@ -81,10 +103,22 @@ impl LogsView {
             .hexpand(true)
             .build();
 
-        top_bar.append(&level_dropdown);
-        top_bar.append(&search_entry);
-        top_bar.append(&auto_scroll_btn);
-        top_bar.append(&copy_btn);
+        // Row 1: Level DropDown + Search Filter
+        let row1 = gtk4::Box::new(Orientation::Horizontal, 8);
+        row1.set_hexpand(true);
+        row1.append(&level_dropdown);
+        row1.append(&search_entry);
+
+        // Row 2: Action Buttons
+        let row2 = gtk4::Box::new(Orientation::Horizontal, 8);
+        row2.set_halign(gtk4::Align::Start);
+        row2.append(&auto_scroll_btn);
+        row2.append(&copy_btn);
+        row2.append(&export_btn);
+        row2.append(&clear_btn);
+
+        top_box.append(&row1);
+        top_box.append(&row2);
 
         // 2. Console Text View & Buffer
         let buffer = TextBuffer::new(None);
@@ -147,7 +181,7 @@ impl LogsView {
             .build();
 
         let content_box = gtk4::Box::new(Orientation::Vertical, 0);
-        content_box.append(&top_bar);
+        content_box.append(&top_box);
         content_box.append(&scrolled);
 
         toolbar_view.set_content(Some(&content_box));
@@ -158,13 +192,11 @@ impl LogsView {
             .child(&toolbar_view)
             .build();
 
-        let all_logs = Rc::new(RefCell::new(Vec::with_capacity(5000)));
+        let all_logs = Rc::new(RefCell::new(VecDeque::with_capacity(5000)));
         let auto_scroll_enabled = Rc::new(Cell::new(true));
         let search_filter = Rc::new(RefCell::new(String::new()));
         let level_filter = Rc::new(Cell::new(0));
         let is_updating_dropdown = Rc::new(Cell::new(false));
-
-        let popover = Self::setup_context_menu(&text_view, &buffer, &all_logs);
 
         let view = Self {
             page,
@@ -174,7 +206,8 @@ impl LogsView {
             level_dropdown,
             auto_scroll_btn,
             copy_btn,
-            popover,
+            export_btn,
+            clear_btn,
             service,
             all_logs,
             auto_scroll_enabled,
@@ -206,15 +239,32 @@ impl LogsView {
             });
         }
 
-        // Search text change
+        // Search text change with 200ms debounce
         {
             let search_ref = self.search_filter.clone();
             let view_weak = self.downgrade_handle();
+            let debounce_timer = Rc::new(RefCell::new(None::<glib::SourceId>));
             self.search_entry.connect_search_changed(move |entry| {
-                *search_ref.borrow_mut() = entry.text().trim().to_lowercase();
-                if let Some(view) = view_weak.upgrade() {
-                    view.rebuild_buffer();
+                if let Some(source_id) = debounce_timer.borrow_mut().take() {
+                    source_id.remove();
                 }
+
+                let text = entry.text().trim().to_lowercase();
+                let search_ref = search_ref.clone();
+                let view_weak = view_weak.clone();
+                let debounce_timer_inner = debounce_timer.clone();
+
+                let source_id = glib::timeout_add_local_once(
+                    std::time::Duration::from_millis(200),
+                    move || {
+                        *debounce_timer_inner.borrow_mut() = None;
+                        *search_ref.borrow_mut() = text;
+                        if let Some(view) = view_weak.upgrade() {
+                            view.rebuild_buffer();
+                        }
+                    },
+                );
+                *debounce_timer.borrow_mut() = Some(source_id);
             });
         }
 
@@ -236,18 +286,87 @@ impl LogsView {
         {
             let buffer = self.buffer.clone();
             let copy_btn = self.copy_btn.clone();
+            let service = self.service.clone();
             self.copy_btn.connect_clicked(move |_| {
                 let (start, end) = buffer.bounds();
                 let text = buffer.text(&start, &end, false);
+                if text.trim().is_empty() {
+                    service.emit_event(gihomo_app::AppEvent::Notification(
+                        tr("toast_export_logs_empty").to_string(),
+                    ));
+                    return;
+                }
                 if let Some(display) = gdk4::Display::default() {
                     let clipboard = display.clipboard();
                     clipboard.set_text(&text);
+                    service.emit_event(gihomo_app::AppEvent::Notification(
+                        tr("toast_copy_logs_success").to_string(),
+                    ));
                     copy_btn.set_icon_name("object-select-symbolic");
                     let btn_clone = copy_btn.clone();
                     glib::timeout_add_local_once(std::time::Duration::from_millis(1500), move || {
                         btn_clone.set_icon_name("edit-copy-symbolic");
                     });
                 }
+            });
+        }
+
+        // Export logs to Downloads directory
+        {
+            let buffer = self.buffer.clone();
+            let export_btn = self.export_btn.clone();
+            let service = self.service.clone();
+            self.export_btn.connect_clicked(move |_| {
+                let (start, end) = buffer.bounds();
+                let text = buffer.text(&start, &end, false);
+                if text.trim().is_empty() {
+                    service.emit_event(gihomo_app::AppEvent::Notification(
+                        tr("toast_export_logs_empty").to_string(),
+                    ));
+                    return;
+                }
+
+                let download_dir = dirs::download_dir()
+                    .or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
+                    .unwrap_or_else(std::env::temp_dir);
+
+                if !download_dir.exists() {
+                    let _ = std::fs::create_dir_all(&download_dir);
+                }
+
+                let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+                let filename = format!("gihomo-kernel-{}.log", timestamp);
+                let target_path = download_dir.join(&filename);
+
+                match std::fs::write(&target_path, text.as_bytes()) {
+                    Ok(_) => {
+                        let msg = tr("toast_export_logs_success")
+                            .replace("{filename}", &filename);
+                        service.emit_event(gihomo_app::AppEvent::Notification(msg));
+                        export_btn.set_icon_name("object-select-symbolic");
+                        let btn_clone = export_btn.clone();
+                        glib::timeout_add_local_once(std::time::Duration::from_millis(1500), move || {
+                            btn_clone.set_icon_name("document-save-symbolic");
+                        });
+                    }
+                    Err(err) => {
+                        service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
+                            "{}: {}",
+                            tr("toast_export_logs_failed"),
+                            err
+                        )));
+                    }
+                }
+            });
+        }
+
+        // Clear console logs
+        {
+            let buffer = self.buffer.clone();
+            let all_logs = self.all_logs.clone();
+            self.clear_btn.connect_clicked(move |_| {
+                all_logs.borrow_mut().clear();
+                buffer.set_text("");
             });
         }
     }
@@ -283,6 +402,9 @@ impl LogsView {
             while let Ok(log) = rx.recv().await {
                 if let Some(view) = view_weak.upgrade() {
                     view.append_log_message(&log, true);
+                    while let Ok(next_log) = rx.try_recv() {
+                        view.append_log_message(&next_log, true);
+                    }
                 } else {
                     break;
                 }
@@ -294,9 +416,9 @@ impl LogsView {
         {
             let mut logs = self.all_logs.borrow_mut();
             if logs.len() >= 5000 {
-                logs.remove(0);
+                logs.pop_front();
             }
-            logs.push(log.clone());
+            logs.push_back(log.clone());
         }
 
         if update_ui_now && self.matches_filter(log) {
@@ -362,6 +484,15 @@ impl LogsView {
 
         let payload_line = format!("{}\n", log.payload);
         self.buffer.insert(&mut end_iter, &payload_line);
+
+        // Trim TextBuffer if it exceeds maximum allowed lines to prevent unbounded memory growth
+        let line_count = self.buffer.line_count();
+        if line_count > MAX_BUFFER_LINES {
+            if let Some(mut trim_iter) = self.buffer.iter_at_line(TRIM_CHUNK_LINES) {
+                let mut start_iter = self.buffer.start_iter();
+                self.buffer.delete(&mut start_iter, &mut trim_iter);
+            }
+        }
     }
 
     pub fn update_ui_text(&self) {
@@ -372,6 +503,10 @@ impl LogsView {
             .set_tooltip_text(Some(tr("tooltip_auto_scroll")));
         self.copy_btn
             .set_tooltip_text(Some(tr("tooltip_copy_logs")));
+        self.export_btn
+            .set_tooltip_text(Some(tr("tooltip_export_logs")));
+        self.clear_btn
+            .set_tooltip_text(Some(tr("tooltip_clear_logs")));
 
         let selected = self.level_dropdown.selected();
         let levels = [
@@ -386,145 +521,13 @@ impl LogsView {
         self.level_dropdown.set_model(Some(&model));
         self.level_dropdown.set_selected(selected);
         self.is_updating_dropdown.set(false);
-
-        self.popover
-            .set_menu_model(Some(&build_log_context_menu()));
     }
 
-    fn setup_context_menu(
-        text_view: &TextView,
-        buffer: &TextBuffer,
-        all_logs: &Rc<RefCell<Vec<LogMessage>>>,
-    ) -> gtk4::PopoverMenu {
-        let popover = gtk4::PopoverMenu::from_model(Some(&build_log_context_menu()));
-        popover.set_parent(text_view);
-        popover.set_has_arrow(false);
-
-        let action_group = gio::SimpleActionGroup::new();
-
-        let buffer_for_copy = buffer.clone();
-        let copy_action = gio::SimpleAction::new("copy", None);
-        copy_action.connect_activate(move |_, _| {
-            let text = if let Some((start, end)) = buffer_for_copy.selection_bounds() {
-                buffer_for_copy.text(&start, &end, false)
-            } else {
-                let (start, end) = buffer_for_copy.bounds();
-                buffer_for_copy.text(&start, &end, false)
-            };
-            if let Some(display) = gdk4::Display::default() {
-                let clipboard = display.clipboard();
-                clipboard.set_text(&text);
-            }
-        });
-        action_group.add_action(&copy_action);
-
-        let buffer_for_select = buffer.clone();
-        let select_all_action = gio::SimpleAction::new("select_all", None);
-        select_all_action.connect_activate(move |_, _| {
-            let (start, end) = buffer_for_select.bounds();
-            buffer_for_select.select_range(&start, &end);
-        });
-        action_group.add_action(&select_all_action);
-
-        let all_logs_for_clear = all_logs.clone();
-        let buffer_for_clear = buffer.clone();
-        let clear_action = gio::SimpleAction::new("clear", None);
-        clear_action.connect_activate(move |_, _| {
-            all_logs_for_clear.borrow_mut().clear();
-            buffer_for_clear.set_text("");
-        });
-        action_group.add_action(&clear_action);
-
-        text_view.insert_action_group("log", Some(&action_group));
-
-        let gesture = gtk4::GestureClick::new();
-        gesture.set_button(3);
-        gesture.set_propagation_phase(gtk4::PropagationPhase::Capture);
-
-        let popover_clone = popover.clone();
-        gesture.connect_pressed(move |gesture, _n_press, x, y| {
-            gesture.set_state(gtk4::EventSequenceState::Claimed);
-            popover_clone.set_pointing_to(Some(&gdk4::Rectangle::new(x as i32, y as i32, 1, 1)));
-            popover_clone.popup();
-        });
-        text_view.add_controller(gesture);
-
-        popover
+    fn downgrade_handle(&self) -> Self {
+        self.clone()
     }
 
-    fn downgrade_handle(&self) -> LogsViewWeak {
-        LogsViewWeak {
-            page: self.page.clone(),
-            text_view: self.text_view.clone(),
-            buffer: self.buffer.clone(),
-            search_entry: self.search_entry.clone(),
-            level_dropdown: self.level_dropdown.clone(),
-            auto_scroll_btn: self.auto_scroll_btn.clone(),
-            copy_btn: self.copy_btn.clone(),
-            popover: self.popover.clone(),
-            service: self.service.clone(),
-            all_logs: self.all_logs.clone(),
-            auto_scroll_enabled: self.auto_scroll_enabled.clone(),
-            search_filter: self.search_filter.clone(),
-            level_filter: self.level_filter.clone(),
-            is_updating_dropdown: self.is_updating_dropdown.clone(),
-            scroll_mark: self.scroll_mark.clone(),
-        }
-    }
-}
-
-fn build_log_context_menu() -> gio::Menu {
-    let menu = gio::Menu::new();
-
-    let section_edit = gio::Menu::new();
-    section_edit.append(Some(&tr("log_menu_copy")), Some("log.copy"));
-    section_edit.append(Some(&tr("log_menu_select_all")), Some("log.select_all"));
-    menu.append_section(None, &section_edit);
-
-    let section_clear = gio::Menu::new();
-    section_clear.append(Some(&tr("log_menu_clear")), Some("log.clear"));
-    menu.append_section(None, &section_clear);
-
-    menu
-}
-
-#[derive(Clone)]
-struct LogsViewWeak {
-    page: adw::NavigationPage,
-    text_view: TextView,
-    buffer: TextBuffer,
-    search_entry: SearchEntry,
-    level_dropdown: DropDown,
-    auto_scroll_btn: ToggleButton,
-    copy_btn: Button,
-    popover: gtk4::PopoverMenu,
-    service: AppService,
-    all_logs: Rc<RefCell<Vec<LogMessage>>>,
-    auto_scroll_enabled: Rc<Cell<bool>>,
-    search_filter: Rc<RefCell<String>>,
-    level_filter: Rc<Cell<u32>>,
-    is_updating_dropdown: Rc<Cell<bool>>,
-    scroll_mark: TextMark,
-}
-
-impl LogsViewWeak {
-    fn upgrade(&self) -> Option<LogsView> {
-        Some(LogsView {
-            page: self.page.clone(),
-            text_view: self.text_view.clone(),
-            buffer: self.buffer.clone(),
-            search_entry: self.search_entry.clone(),
-            level_dropdown: self.level_dropdown.clone(),
-            auto_scroll_btn: self.auto_scroll_btn.clone(),
-            copy_btn: self.copy_btn.clone(),
-            popover: self.popover.clone(),
-            service: self.service.clone(),
-            all_logs: self.all_logs.clone(),
-            auto_scroll_enabled: self.auto_scroll_enabled.clone(),
-            search_filter: self.search_filter.clone(),
-            level_filter: self.level_filter.clone(),
-            is_updating_dropdown: self.is_updating_dropdown.clone(),
-            scroll_mark: self.scroll_mark.clone(),
-        })
+    fn upgrade(&self) -> Option<Self> {
+        Some(self.clone())
     }
 }

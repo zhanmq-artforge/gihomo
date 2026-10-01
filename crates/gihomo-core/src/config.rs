@@ -98,7 +98,7 @@ pub fn merge_subscription_config(
     );
     base_map.insert(
         Value::String("external-controller".to_string()),
-        Value::String(format!("0.0.0.0:{}", controller_port)),
+        Value::String(format!("127.0.0.1:{}", controller_port)),
     );
     base_map.insert(
         Value::String("secret".to_string()),
@@ -253,6 +253,7 @@ rules:
             .expect("Merge must succeed");
 
         assert!(merged.contains("mixed-port: 7890"));
+        assert!(merged.contains("external-controller: 127.0.0.1:9090"));
         assert!(merged.contains("HK-01"));
         assert!(merged.contains("MATCH,PROXY"));
         assert!(merged.contains("enable: true")); // TUN enabled

@@ -21,6 +21,19 @@ impl Default for StorageManager {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum RemoteSubscriptionDownload {
+    Modified {
+        content: String,
+        etag: Option<String>,
+        user_info: Option<SubscriptionUserInfo>,
+    },
+    NotModified {
+        etag: Option<String>,
+        user_info: Option<SubscriptionUserInfo>,
+    },
+}
+
 impl StorageManager {
     pub fn new() -> Self {
         let base_dir = dirs::data_local_dir()
@@ -234,12 +247,12 @@ impl StorageManager {
         Ok(path)
     }
 
-    /// Downloads a remote subscription, returns (content, etag, user_info)
+    /// Downloads a remote subscription, handles HTTP 304 Not Modified
     pub async fn download_remote_subscription(
         &self,
         url: &str,
         etag: Option<&str>,
-    ) -> Result<(String, Option<String>, Option<SubscriptionUserInfo>), InfraError> {
+    ) -> Result<RemoteSubscriptionDownload, InfraError> {
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,
@@ -259,20 +272,6 @@ impl StorageManager {
 
         let resp = client.get(url).send().await?;
 
-        if resp.status() == reqwest::StatusCode::NOT_MODIFIED {
-            return Err(InfraError::DownloadFailed(
-                304,
-                "Subscription not modified".to_string(),
-            ));
-        }
-
-        if !resp.status().is_success() {
-            return Err(InfraError::DownloadFailed(
-                resp.status().as_u16(),
-                resp.text().await.unwrap_or_default(),
-            ));
-        }
-
         let new_etag = resp
             .headers()
             .get("etag")
@@ -285,8 +284,26 @@ impl StorageManager {
             .and_then(|v| v.to_str().ok())
             .and_then(parse_user_info_header);
 
+        if resp.status() == reqwest::StatusCode::NOT_MODIFIED {
+            return Ok(RemoteSubscriptionDownload::NotModified {
+                etag: new_etag,
+                user_info,
+            });
+        }
+
+        if !resp.status().is_success() {
+            return Err(InfraError::DownloadFailed(
+                resp.status().as_u16(),
+                resp.text().await.unwrap_or_default(),
+            ));
+        }
+
         let content = resp.text().await?;
-        Ok((content, new_etag, user_info))
+        Ok(RemoteSubscriptionDownload::Modified {
+            content,
+            etag: new_etag,
+            user_info,
+        })
     }
 
     pub async fn read_recent_kernel_logs(&self, max_lines: usize) -> Vec<gihomo_core::LogMessage> {

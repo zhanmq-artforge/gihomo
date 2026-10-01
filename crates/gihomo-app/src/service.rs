@@ -4,7 +4,9 @@ use chrono::Utc;
 use gihomo_core::{
     generate_base_config, merge_subscription_config, KernelStatus, Subscription, SubscriptionSource,
 };
-use gihomo_infra::{KernelManager, MihomoApiClient, StorageManager, SystemProxyManager};
+use gihomo_infra::{
+    KernelManager, MihomoApiClient, RemoteSubscriptionDownload, StorageManager, SystemProxyManager,
+};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -266,7 +268,11 @@ impl AppService {
         let mut sub = Subscription::new_url(name, url.clone());
 
         match self.storage.download_remote_subscription(&url, None).await {
-            Ok((content, etag, user_info)) => {
+            Ok(RemoteSubscriptionDownload::Modified {
+                content,
+                etag,
+                user_info,
+            }) => {
                 sub.etag = etag;
                 sub.user_info = user_info;
                 sub.updated_at = Some(Utc::now());
@@ -296,6 +302,9 @@ impl AppService {
                 )));
 
                 Ok(sub)
+            }
+            Ok(RemoteSubscriptionDownload::NotModified { .. }) => {
+                Err("拉取订阅失败: 远程服务返回内容为空".into())
             }
             Err(e) => Err(format!("拉取订阅失败: {}", e).into()),
         }
@@ -466,20 +475,41 @@ impl AppService {
         let mut sub = subs[sub_idx].clone();
         match &sub.source {
             SubscriptionSource::Url(url) => {
-                let (content, etag, user_info) = self
+                let download_res = self
                     .storage
                     .download_remote_subscription(url, sub.etag.as_deref())
                     .await
                     .map_err(|e| format!("更新订阅失败: {}", e))?;
 
-                sub.etag = etag;
-                sub.user_info = user_info;
-                sub.updated_at = Some(Utc::now());
+                let is_modified = match download_res {
+                    RemoteSubscriptionDownload::Modified {
+                        content,
+                        etag,
+                        user_info,
+                    } => {
+                        sub.etag = etag;
+                        if user_info.is_some() {
+                            sub.user_info = user_info;
+                        }
+                        sub.updated_at = Some(Utc::now());
 
-                self.storage
-                    .save_subscription_content(&sub.id, &content)
-                    .await
-                    .map_err(|e| format!("保存订阅失败: {}", e))?;
+                        self.storage
+                            .save_subscription_content(&sub.id, &content)
+                            .await
+                            .map_err(|e| format!("保存订阅失败: {}", e))?;
+                        true
+                    }
+                    RemoteSubscriptionDownload::NotModified { etag, user_info } => {
+                        if etag.is_some() {
+                            sub.etag = etag;
+                        }
+                        if user_info.is_some() {
+                            sub.user_info = user_info;
+                        }
+                        sub.updated_at = Some(Utc::now());
+                        false
+                    }
+                };
 
                 subs[sub_idx] = sub.clone();
                 self.storage
@@ -488,16 +518,18 @@ impl AppService {
                     .map_err(|e| e.to_string())?;
 
                 let is_active = sub.is_active;
-                if is_active {
+                if is_active && is_modified {
                     let _ = self.activate_subscription(&sub.id).await;
                 }
 
                 if emit_events {
                     self.emit_event(AppEvent::SubscriptionsChanged(subs));
-                    self.emit_event(AppEvent::Notification(format!(
-                        "订阅 [{}] 更新完成",
-                        sub.name
-                    )));
+                    let msg = if is_modified {
+                        format!("订阅 [{}] 更新完成", sub.name)
+                    } else {
+                        format!("订阅 [{}] 已是最新 (无变更)", sub.name)
+                    };
+                    self.emit_event(AppEvent::Notification(msg));
                 }
 
                 Ok(())
@@ -586,11 +618,23 @@ impl AppService {
         if subscription.source != source {
             match &source {
                 SubscriptionSource::Url(url) => {
-                    let (content, etag, user_info) =
+                    let download_res =
                         self.storage.download_remote_subscription(url, None).await?;
-                    self.storage.save_subscription_content(id, &content).await?;
-                    subscription.etag = etag;
-                    subscription.user_info = user_info;
+                    match download_res {
+                        RemoteSubscriptionDownload::Modified {
+                            content,
+                            etag,
+                            user_info,
+                        } => {
+                            self.storage.save_subscription_content(id, &content).await?;
+                            subscription.etag = etag;
+                            subscription.user_info = user_info;
+                        }
+                        RemoteSubscriptionDownload::NotModified { etag, user_info } => {
+                            subscription.etag = etag;
+                            subscription.user_info = user_info;
+                        }
+                    }
                 }
                 SubscriptionSource::LocalFile(path) => {
                     let content = tokio::fs::read_to_string(path)
