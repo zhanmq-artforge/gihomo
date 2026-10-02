@@ -158,11 +158,7 @@ impl SettingsView {
             .title(tr("settings_language"))
             .build();
 
-        let lang_model = StringList::new(&[
-            tr("lang_system"),
-            "简体中文",
-            "English",
-        ]);
+        let lang_model = StringList::new(&[tr("lang_system"), "简体中文", "English"]);
         lang_row.set_model(Some(&lang_model));
         lang_row.set_selected(current_language_config().to_index());
 
@@ -511,11 +507,7 @@ impl SettingsView {
         self.lang_row.set_title(tr("settings_language"));
         let selected_lang = current_language_config().to_index();
         self.is_updating_lang.set(true);
-        let lang_model = StringList::new(&[
-            tr("lang_system"),
-            "简体中文",
-            "English",
-        ]);
+        let lang_model = StringList::new(&[tr("lang_system"), "简体中文", "English"]);
         self.lang_row.set_model(Some(&lang_model));
         self.lang_row.set_selected(selected_lang);
         self.is_updating_lang.set(false);

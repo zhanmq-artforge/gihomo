@@ -29,13 +29,17 @@
 | 键名前缀 | 覆盖作用域 | 示例 |
 |---|---|---|
 | `app_*` | 应用名称、全局副标题、退出提示 | `app_name`, `app_subtitle` |
-| `tab_*` | 主侧边栏/导航视图 Tab 项 | `tab_dashboard`, `tab_proxies`, `tab_subscriptions`, `tab_settings` |
+| `tab_*` | 主侧边栏导航视图项 | `tab_dashboard`, `tab_proxies`, `tab_subscriptions`, `tab_connections`, `tab_rules`, `tab_logs`, `tab_settings` |
 | `ctrl_*` | 控制面板卡片分组与标题 | `ctrl_group_title`, `ctrl_group_desc` |
 | `sys_proxy_*`| 系统代理 Switch 及说明 | `sys_proxy_title`, `sys_proxy_sub` |
 | `tun_*` | TUN 模式 Switch 及说明 | `tun_title`, `tun_sub` |
 | `kernel_*` | 内核运行状态与控制按钮 | `kernel_status_title`, `kernel_running`, `kernel_stopped` |
 | `traffic_*`| 实时流量监控分组与文字 | `traffic_title`, `realtime_up`, `realtime_down` |
 | `sub_*` | 订阅列表、详情、配额与按钮 | `sub_add_title`, `sub_refresh`, `sub_expire` |
+| `conn_*` | 连接监控视图各项标签与列头 | `conn_title`, `conn_host`, `conn_process` |
+| `rule_*` | 分流规则视图各项标签与规则集 | `rule_title`, `rule_type`, `rule_payload` |
+| `log_*` | 内核日志控制台按钮与筛选项 | `log_title`, `log_export_success`, `log_clear` |
+| `tray_*` | 系统托盘菜单及状态提示项 | `tray_system_proxy`, `tray_tun_mode`, `tray_active_subscription` |
 | `settings_*`| 设置页各项设置标题与状态 | `settings_lang`, `settings_theme`, `settings_tun_cap` |
 | `btn_*` | 动作按钮通用标签 | `btn_start`, `btn_stop`, `btn_restart`, `btn_authorize_tun` |
 | `err_*` | 业务错误提示文案 | `err_kernel_start_failed`, `err_invalid_yaml` |

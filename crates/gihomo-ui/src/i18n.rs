@@ -385,7 +385,10 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     zh.insert("tooltip_refresh_proxies", "刷新节点列表与状态");
     en.insert("tooltip_refresh_proxies", "Refresh proxy nodes and status");
     zh.insert("tooltip_ping_all_groups", "并发测试全部节点延迟");
-    en.insert("tooltip_ping_all_groups", "Test latency for all proxy nodes");
+    en.insert(
+        "tooltip_ping_all_groups",
+        "Test latency for all proxy nodes",
+    );
     zh.insert("proxies_mode_label", "分流模式:");
     en.insert("proxies_mode_label", "Mode:");
     zh.insert("mode_rule", "规则");
@@ -436,10 +439,38 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("empty_group_nodes", "No matching nodes in this group");
     zh.insert("proxy_group_label", "策略组:");
     en.insert("proxy_group_label", "Group:");
+    zh.insert(
+        "mode_global_banner",
+        "全局代理模式：所有网络连接均通过 GLOBAL 策略组选择的节点直出",
+    );
+    en.insert(
+        "mode_global_banner",
+        "Global Mode: All network traffic routes through the node selected in GLOBAL",
+    );
+    zh.insert(
+        "mode_direct_banner",
+        "直连模式：所有网络连接直接访问目标服务器，不经过任何代理节点",
+    );
+    en.insert(
+        "mode_direct_banner",
+        "Direct Mode: All traffic connects directly without proxies",
+    );
+    zh.insert("group_nodes_count_suffix", "个节点");
+    en.insert("group_nodes_count_suffix", "nodes");
+    zh.insert("tooltip_collapse_all", "全部折叠");
+    en.insert("tooltip_collapse_all", "Collapse All");
+    zh.insert("tooltip_expand_all", "全部展开");
+    en.insert("tooltip_expand_all", "Expand All");
 
     // Rules View
-    zh.insert("rules_search_placeholder", "搜索分流规则 (域名 / IP / 策略)...");
-    en.insert("rules_search_placeholder", "Search rules (domain, IP, proxy)...");
+    zh.insert(
+        "rules_search_placeholder",
+        "搜索分流规则 (域名 / IP / 策略)...",
+    );
+    en.insert(
+        "rules_search_placeholder",
+        "Search rules (domain, IP, proxy)...",
+    );
     zh.insert("rules_count_empty", "暂无分流规则");
     en.insert("rules_count_empty", "No rules available");
     zh.insert("rules_count_prefix", "共匹配规则: ");
@@ -449,11 +480,17 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     zh.insert("rules_providers_title", "规则集 (Rule Providers)");
     en.insert("rules_providers_title", "Rule Providers");
     zh.insert("rules_providers_desc", "订阅配置中引用的外部规则集");
-    en.insert("rules_providers_desc", "External rule providers defined in subscription");
+    en.insert(
+        "rules_providers_desc",
+        "External rule providers defined in subscription",
+    );
     zh.insert("rules_list_title", "生效规则列表");
     en.insert("rules_list_title", "Active Rules");
     zh.insert("rules_list_desc", "流量命中规则将按从上到下顺序依次匹配");
-    en.insert("rules_list_desc", "Traffic matches rules sequentially from top to bottom");
+    en.insert(
+        "rules_list_desc",
+        "Traffic matches rules sequentially from top to bottom",
+    );
     zh.insert(
         "rules_list_desc_format",
         "流量命中规则将按从上到下顺序依次匹配 · 共 {count} 条生效规则",
@@ -470,12 +507,21 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
         "rules_list_desc_filtered",
         "Traffic matches rules sequentially from top to bottom · Matching {filtered} / {total} rules",
     );
-    zh.insert("rules_provider_subtitle", "{type} ({count}条规则) | 更新时间: {time}");
-    en.insert("rules_provider_subtitle", "{type} ({count} rules) | Updated: {time}");
+    zh.insert(
+        "rules_provider_subtitle",
+        "{type} ({count}条规则) | 更新时间: {time}",
+    );
+    en.insert(
+        "rules_provider_subtitle",
+        "{type} ({count} rules) | Updated: {time}",
+    );
     zh.insert("empty_rules_title", "未获取到分流规则");
     en.insert("empty_rules_title", "No Rules Detected");
     zh.insert("empty_rules_desc", "请确认内核处于运行状态且已激活有效订阅");
-    en.insert("empty_rules_desc", "Ensure Mihomo kernel is running with an active subscription");
+    en.insert(
+        "empty_rules_desc",
+        "Ensure Mihomo kernel is running with an active subscription",
+    );
     zh.insert("rule_match_all", "(全流量匹配 MATCH)");
     en.insert("rule_match_all", "(Match all traffic)");
     zh.insert("btn_load_more", "加载更多规则...");
@@ -493,17 +539,26 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     zh.insert("conn_count_badge", "{count} 个活跃连接");
     en.insert("conn_count_badge", "{count} active connections");
     zh.insert("conn_count_filtered", "已筛选 {filtered} / {total} 个连接");
-    en.insert("conn_count_filtered", "Filtered {filtered} / {total} connections");
+    en.insert(
+        "conn_count_filtered",
+        "Filtered {filtered} / {total} connections",
+    );
     zh.insert("conn_showing_top", "已显示前 {count} 条");
     en.insert("conn_showing_top", "Showing top {count}");
     zh.insert("conn_search_placeholder", "搜索域名、IP、进程或规则...");
-    en.insert("conn_search_placeholder", "Search domain, IP, process, or rule...");
+    en.insert(
+        "conn_search_placeholder",
+        "Search domain, IP, process, or rule...",
+    );
     zh.insert("tooltip_refresh_conn", "刷新当前连接列表");
     en.insert("tooltip_refresh_conn", "Refresh connection list");
     zh.insert("btn_close_all_conn", "断开全部");
     en.insert("btn_close_all_conn", "Close All");
     zh.insert("tooltip_close_all_conn", "断开当前所有活跃网络连接");
-    en.insert("tooltip_close_all_conn", "Close all active network connections");
+    en.insert(
+        "tooltip_close_all_conn",
+        "Close all active network connections",
+    );
     zh.insert("conn_empty_title", "暂无活跃网络连接");
     en.insert("conn_empty_title", "No Active Connections");
     zh.insert(
@@ -529,7 +584,10 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     zh.insert("toast_close_conn_failed", "断开连接失败");
     en.insert("toast_close_conn_failed", "Failed to close connections");
     zh.insert("toast_close_all_conn_success", "已成功断开全部网络连接");
-    en.insert("toast_close_all_conn_success", "All network connections closed successfully");
+    en.insert(
+        "toast_close_all_conn_success",
+        "All network connections closed successfully",
+    );
     zh.insert("conn_list_title", "活跃连接明细");
     en.insert("conn_list_title", "Active Connections Details");
     zh.insert(
@@ -585,15 +643,27 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     zh.insert("btn_export_logs", "导出");
     en.insert("btn_export_logs", "Export");
     zh.insert("tooltip_export_logs", "导出当前日志至下载目录");
-    en.insert("tooltip_export_logs", "Export current logs to Downloads directory");
-    zh.insert("toast_export_logs_success", "日志已成功导出至下载目录: {filename}");
-    en.insert("toast_export_logs_success", "Logs successfully exported to Downloads: {filename}");
+    en.insert(
+        "tooltip_export_logs",
+        "Export current logs to Downloads directory",
+    );
+    zh.insert(
+        "toast_export_logs_success",
+        "日志已成功导出至下载目录: {filename}",
+    );
+    en.insert(
+        "toast_export_logs_success",
+        "Logs successfully exported to Downloads: {filename}",
+    );
     zh.insert("toast_export_logs_empty", "当前无日志可导出");
     en.insert("toast_export_logs_empty", "No logs available to export");
     zh.insert("toast_export_logs_failed", "导出日志文件失败");
     en.insert("toast_export_logs_failed", "Failed to export log file");
     zh.insert("toast_copy_logs_success", "已复制当前日志至剪贴板");
-    en.insert("toast_copy_logs_success", "Current logs copied to clipboard");
+    en.insert(
+        "toast_copy_logs_success",
+        "Current logs copied to clipboard",
+    );
     zh.insert("btn_clear_logs", "清空");
     en.insert("btn_clear_logs", "Clear");
     zh.insert("tooltip_clear_logs", "清空当前控制台日志");
@@ -703,14 +773,8 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("sub_interval_12h", "12 Hours");
     zh.insert("sub_interval_24h", "24 小时 (1 天)");
     en.insert("sub_interval_24h", "24 Hours (1 Day)");
-    zh.insert(
-        "sub_auto_update_disabled",
-        "已关闭自动更新",
-    );
-    en.insert(
-        "sub_auto_update_disabled",
-        "Auto-update disabled",
-    );
+    zh.insert("sub_auto_update_disabled", "已关闭自动更新");
+    en.insert("sub_auto_update_disabled", "Auto-update disabled");
     zh.insert("sub_auto_update_enabled_m", "每 {m} 分钟自动更新全部订阅");
     en.insert(
         "sub_auto_update_enabled_m",
@@ -851,7 +915,10 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     );
     zh.insert("settings_mixed_port", "混合代理端口 (Mixed Port)");
     en.insert("settings_mixed_port", "Mixed Proxy Port");
-    zh.insert("settings_mixed_port_sub", "7890 (HTTP &amp; SOCKS5 共用端口)");
+    zh.insert(
+        "settings_mixed_port_sub",
+        "7890 (HTTP &amp; SOCKS5 共用端口)",
+    );
     en.insert(
         "settings_mixed_port_sub",
         "7890 (Shared HTTP &amp; SOCKS5 port)",
@@ -897,8 +964,14 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     // Geo Database Management
     zh.insert("settings_geo", "Geo 数据库管理");
     en.insert("settings_geo", "Geo Databases");
-    zh.insert("settings_geo_desc", "用于地理位置与域名分流的 GeoIP 与 GeoSite 数据库文件");
-    en.insert("settings_geo_desc", "GeoIP and GeoSite databases for IP and domain routing");
+    zh.insert(
+        "settings_geo_desc",
+        "用于地理位置与域名分流的 GeoIP 与 GeoSite 数据库文件",
+    );
+    en.insert(
+        "settings_geo_desc",
+        "GeoIP and GeoSite databases for IP and domain routing",
+    );
     zh.insert("btn_update_geo", "一键更新 Geo 数据库");
     en.insert("btn_update_geo", "Update Geo Databases");
     zh.insert("geo_checking", "检测中...");
@@ -953,7 +1026,10 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
         "Automatically start Mihomo kernel in background when active profile exists",
     );
     zh.insert("settings_auto_restore_proxy", "启动应用时自动恢复代理状态");
-    en.insert("settings_auto_restore_proxy", "Auto-restore Proxy on Launch");
+    en.insert(
+        "settings_auto_restore_proxy",
+        "Auto-restore Proxy on Launch",
+    );
     zh.insert(
         "settings_auto_restore_proxy_sub",
         "内核成功运行后，自动恢复上次开启的系统代理或 TUN 模式",
@@ -978,6 +1054,12 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     en.insert("tray_mode_global", "Global Mode");
     zh.insert("tray_mode_direct", "直连模式 (Direct)");
     en.insert("tray_mode_direct", "Direct Mode");
+    zh.insert("tray_subscriptions", "切换订阅");
+    en.insert("tray_subscriptions", "Subscriptions");
+    zh.insert("tray_active_subscription", "当前订阅");
+    en.insert("tray_active_subscription", "Active Subscription");
+    zh.insert("tray_no_subscriptions", "暂无订阅配置");
+    en.insert("tray_no_subscriptions", "No Subscriptions");
     zh.insert("tray_quit", "退出");
     en.insert("tray_quit", "Quit");
 
@@ -1050,7 +1132,9 @@ pub fn localize_notification(msg: &str) -> String {
         "订阅已删除" => "Subscription deleted".to_string(),
         "正在更新 Geo 数据库..." => "Updating Geo databases...".to_string(),
         "Geo 数据库更新完成" => "Geo databases updated successfully".to_string(),
-        "已成功断开全部网络连接" => "All network connections closed successfully".to_string(),
+        "已成功断开全部网络连接" => {
+            "All network connections closed successfully".to_string()
+        }
         other => {
             if let Some(rest) = other.strip_prefix("已切换至 [") {
                 if let Some(mode) = rest.strip_suffix("] 模式") {
@@ -1107,7 +1191,10 @@ pub fn localize_notification(msg: &str) -> String {
             if let Some(rest) = other.strip_prefix("已成功导入 ") {
                 if let Some((count_str, after)) = rest.split_once(" 个节点到 [") {
                     if let Some(name) = after.strip_suffix(']') {
-                        return format!("Successfully imported {} nodes into [{}]", count_str, name);
+                        return format!(
+                            "Successfully imported {} nodes into [{}]",
+                            count_str, name
+                        );
                     }
                 }
             }
@@ -1147,7 +1234,10 @@ pub fn set_auto_start_kernel(enabled: bool) {
     let mut mgr = I18N.write().unwrap();
     mgr.config.auto_start_kernel = enabled;
     save_config(&mgr.config);
-    info!(auto_start_kernel = enabled, "Auto start kernel preference updated");
+    info!(
+        auto_start_kernel = enabled,
+        "Auto start kernel preference updated"
+    );
 }
 
 pub fn auto_restore_proxy_config() -> bool {
@@ -1158,7 +1248,10 @@ pub fn set_auto_restore_proxy(enabled: bool) {
     let mut mgr = I18N.write().unwrap();
     mgr.config.auto_restore_proxy = enabled;
     save_config(&mgr.config);
-    info!(auto_restore_proxy = enabled, "Auto restore proxy preference updated");
+    info!(
+        auto_restore_proxy = enabled,
+        "Auto restore proxy preference updated"
+    );
 }
 
 pub fn auto_update_interval_minutes_config() -> u32 {
@@ -1273,7 +1366,10 @@ mod tests {
 
     #[test]
     fn test_localize_notification() {
-        assert_eq!(localize_notification("Mihomo 内核已启动"), "Mihomo 内核已启动");
+        assert_eq!(
+            localize_notification("Mihomo 内核已启动"),
+            "Mihomo 内核已启动"
+        );
         // Test pattern matching logic directly
         assert_eq!(
             localize_notification("已切换至 [rule] 模式"),

@@ -45,7 +45,7 @@
 
 | Crate | 允许依赖的库 | 严禁依赖的库 | 允许 `unsafe`？ |
 |---|---|---|---|
-| `gihomo-core` | `serde`, `serde_json`, `serde_yaml`, `thiserror`, `uuid`, `chrono`, `tracing` | `gtk4`, `libadwaita`, `reqwest`, `tokio` | **禁止** |
+| `gihomo-core` | `serde`, `serde_json`, `serde_yaml`, `base64`, `url`, `thiserror`, `uuid`, `chrono`, `tracing` | `gtk4`, `libadwaita`, `reqwest`, `tokio` | **禁止** |
 | `gihomo-infra`| `gihomo-core`, `tokio`, `futures-util`, `reqwest`, `tokio-tungstenite`, `serde`, `serde_json`, `serde_yaml`, `gio`, `glib`, `dirs`, `thiserror`, `tracing`, `async-channel`, `chrono`, `uuid`, `libc` | `gtk4`, `libadwaita`, `gihomo-ui` | Linux FFI only, audited |
 | `gihomo-app`  | `gihomo-core`, `gihomo-infra`, `tokio`, `async-channel`, `tracing`, `thiserror`, `serde`, `serde_json`, `chrono`, `uuid`, `glib` | `gtk4`, `libadwaita` | **禁止** |
 | `gihomo-ui`   | `gihomo-core`, `gihomo-app`, `gtk4`, `libadwaita`, `glib`, `gio`, `gdk4`, `async-channel`, `tracing`, `chrono`, `serde`, `serde_json`, `ksni`, `tokio`, `dirs` | `gihomo-infra` | **禁止** |

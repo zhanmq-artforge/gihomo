@@ -15,6 +15,7 @@ mod imp {
         pub service: RefCell<Option<AppService>>,
         pub start_minimized: Cell<bool>,
         pub hold_guard: RefCell<Option<gio::ApplicationHoldGuard>>,
+        pub background_tasks_started: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -42,6 +43,9 @@ mod imp {
                 if !is_minimized {
                     window.set_visible(true);
                     window.present();
+                    if let Some(main_win) = window.downcast_ref::<MainWindow>() {
+                        main_win.resync_runtime_state();
+                    }
                 }
             } else {
                 let service = self
@@ -73,46 +77,9 @@ mod imp {
                 icon_theme.add_search_path("data/icons/hicolor/scalable/apps");
             }
 
-            // Launch background system tray
+            // Launch background tasks if service has already been set
             if let Some(service) = self.service.borrow().clone() {
-                let svc_tray = service.clone();
-                tokio::spawn(async move {
-                    crate::tray::start_tray(svc_tray).await;
-                });
-
-                // Auto-start kernel and restore proxy state if configured
-                let svc_auto = service.clone();
-                tokio::spawn(async move {
-                    let config = crate::i18n::load_config();
-                    if config.auto_start_kernel {
-                        if svc_auto.can_start_kernel().await {
-                            info!("Auto-start: Valid configuration found, starting Mihomo kernel in background...");
-                            if let Err(e) = svc_auto.start_kernel().await {
-                                warn!("Failed to auto-start Mihomo kernel: {}", e);
-                            } else {
-                                info!("Mihomo kernel auto-started successfully");
-                                if config.auto_restore_proxy {
-                                    if config.last_proxy_enabled {
-                                        info!("Auto-restore: Re-enabling system proxy...");
-                                        let _ = svc_auto.toggle_proxy(true);
-                                    }
-                                    if config.last_tun_enabled {
-                                        info!("Auto-restore: Re-enabling TUN mode...");
-                                        let _ = svc_auto.set_tun(true).await;
-                                    }
-                                }
-                            }
-                        } else {
-                            info!("Auto-start: No active subscription or config found; skipping auto-start");
-                        }
-                    }
-                });
-
-                // Launch subscription auto-update background scheduler
-                let svc_scheduler = service.clone();
-                tokio::spawn(async move {
-                    start_auto_update_scheduler(svc_scheduler).await;
-                });
+                app.start_background_tasks(&service);
             }
 
             info!("Starting up GihomoApplication (id: {})", APPLICATION_ID);
@@ -133,7 +100,7 @@ mod imp {
                         service.shutdown().await;
                         let _ = tx.send(());
                     });
-                    let _ = rx.recv_timeout(std::time::Duration::from_secs(2));
+                    let _ = rx.recv_timeout(std::time::Duration::from_secs(5));
                 }
             }
             self.parent_shutdown();
@@ -178,7 +145,55 @@ impl GihomoApplication {
     }
 
     pub fn set_service(&self, service: AppService) {
-        *self.imp().service.borrow_mut() = Some(service);
+        *self.imp().service.borrow_mut() = Some(service.clone());
+        self.start_background_tasks(&service);
+    }
+
+    pub fn start_background_tasks(&self, service: &AppService) {
+        if self.imp().background_tasks_started.get() {
+            return;
+        }
+        self.imp().background_tasks_started.set(true);
+
+        // Launch background system tray
+        let svc_tray = service.clone();
+        tokio::spawn(async move {
+            crate::tray::start_tray(svc_tray).await;
+        });
+
+        // Auto-start kernel and restore proxy state if configured
+        let svc_auto = service.clone();
+        tokio::spawn(async move {
+            let config = crate::i18n::load_config();
+            if config.auto_start_kernel {
+                if svc_auto.can_start_kernel().await {
+                    info!("Auto-start: Valid configuration found, starting Mihomo kernel in background...");
+                    if let Err(e) = svc_auto.start_kernel().await {
+                        warn!("Failed to auto-start Mihomo kernel: {}", e);
+                    } else {
+                        info!("Mihomo kernel auto-started successfully");
+                        if config.auto_restore_proxy {
+                            if config.last_proxy_enabled {
+                                info!("Auto-restore: Re-enabling system proxy...");
+                                let _ = svc_auto.toggle_proxy(true);
+                            }
+                            if config.last_tun_enabled {
+                                info!("Auto-restore: Re-enabling TUN mode...");
+                                let _ = svc_auto.set_tun(true).await;
+                            }
+                        }
+                    }
+                } else {
+                    info!("Auto-start: No active subscription or config found; skipping auto-start");
+                }
+            }
+        });
+
+        // Launch subscription auto-update background scheduler
+        let svc_scheduler = service.clone();
+        tokio::spawn(async move {
+            start_auto_update_scheduler(svc_scheduler).await;
+        });
     }
 }
 

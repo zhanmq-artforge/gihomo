@@ -98,7 +98,10 @@ impl StorageManager {
         let (exists, size, updated) = if geoip_p.exists() {
             if let Ok(meta) = fs::metadata(&geoip_p).await {
                 let size = meta.len();
-                let mtime = meta.modified().ok().map(chrono::DateTime::<chrono::Utc>::from);
+                let mtime = meta
+                    .modified()
+                    .ok()
+                    .map(chrono::DateTime::<chrono::Utc>::from);
                 (true, size, mtime)
             } else {
                 (true, 0, None)
@@ -119,7 +122,10 @@ impl StorageManager {
         let (exists, size, updated) = if geosite_p.exists() {
             if let Ok(meta) = fs::metadata(&geosite_p).await {
                 let size = meta.len();
-                let mtime = meta.modified().ok().map(chrono::DateTime::<chrono::Utc>::from);
+                let mtime = meta
+                    .modified()
+                    .ok()
+                    .map(chrono::DateTime::<chrono::Utc>::from);
                 (true, size, mtime)
             } else {
                 (true, 0, None)
@@ -138,11 +144,7 @@ impl StorageManager {
         list
     }
 
-    pub async fn download_file_to(
-        &self,
-        url: &str,
-        dest_path: &Path,
-    ) -> Result<(), InfraError> {
+    pub async fn download_file_to(&self, url: &str, dest_path: &Path) -> Result<(), InfraError> {
         info!("Downloading file from {} to {:?}", url, dest_path);
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(60))

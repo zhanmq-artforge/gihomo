@@ -1,5 +1,5 @@
 Name:           gihomo
-Version:        1.0.1
+Version:        1.1.0
 Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 
@@ -76,9 +76,13 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/polkit-1/rules.d/art.artforge.Gihomo.rules
 
 %changelog
-* Tue Sep 29 2026 ArtForge Team <team@artforge.org> - 0.4.3-1
-- Add subscription editing and sequential bulk refresh with per-item failure summary
-- Refine subscription management action hierarchy
+* Fri Oct 02 2026 ArtForge Team <team@artforge.org> - 1.1.0-1
+- Single-instance D-Bus lifecycle, background daemon daemonization, and tray state resync
+- Frequency-tiered sidebar navigation with GNOME HIG 1px separators
+- System tray quick subscription switching submenu with live checkmark
+- Proxies view responsive toolbar with full-width search and narrow breakpoint wrapping
+- Granular single-node latency test buttons
+
 
 * Tue Sep 29 2026 ArtForge Team <team@artforge.org> - 0.4.2-1
 - Bind the Mihomo controller to loopback and persist a private random secret

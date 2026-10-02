@@ -221,12 +221,15 @@ impl AppService {
 
                 is_running.store(false, Ordering::SeqCst);
 
-                // When stream disconnects, check actual kernel status to update UI (Stopped / NotFound)
+                // When stream disconnects (e.g. during config reload or sleep), check actual kernel status
+                // Only broadcast non-running status if the process has genuinely terminated
                 match KernelManager::check_status(&this.storage, this.controller_port, &this.secret)
                     .await
                 {
                     Ok(status) => {
-                        this.emit_event(AppEvent::KernelStatusChanged(status));
+                        if status != KernelStatus::Running {
+                            this.emit_event(AppEvent::KernelStatusChanged(status));
+                        }
                     }
                     Err(e) => {
                         debug!("Kernel check status error: {}", e);
@@ -425,7 +428,10 @@ impl AppService {
                     tun_enabled,
                 );
                 if let Ok(config_path) = self.storage.write_active_config(&base_yaml).await {
-                    let _ = self.api.reload_config(&config_path.to_string_lossy(), true).await;
+                    let _ = self
+                        .api
+                        .reload_config(&config_path.to_string_lossy(), true)
+                        .await;
                 }
             }
         }
@@ -618,8 +624,7 @@ impl AppService {
         if subscription.source != source {
             match &source {
                 SubscriptionSource::Url(url) => {
-                    let download_res =
-                        self.storage.download_remote_subscription(url, None).await?;
+                    let download_res = self.storage.download_remote_subscription(url, None).await?;
                     match download_res {
                         RemoteSubscriptionDownload::Modified {
                             content,
@@ -738,9 +743,11 @@ impl AppService {
             let config_path = self.storage.active_config_path();
             let config_path_str = config_path.to_str().unwrap_or("config.yaml");
             if let Err(e) = self.api.reload_config(config_path_str, true).await {
-                warn!("Mihomo API reload failed: {}", e);
+                warn!("Mihomo API reload failed: {}, falling back to restart", e);
+                let _ = KernelManager::restart(&self.storage, self.controller_port, &self.secret).await;
             }
             let _ = self.fetch_proxies().await;
+            self.emit_event(AppEvent::KernelStatusChanged(KernelStatus::Running));
         }
 
         let active_sub = subs.iter().find(|s| s.id == id).cloned();
@@ -822,6 +829,13 @@ impl AppService {
             "TUN 模式已关闭".to_string()
         }));
         Ok(())
+    }
+
+    /// Check current native Mihomo kernel status directly
+    pub async fn check_kernel_status(&self) -> Result<KernelStatus, AppError> {
+        KernelManager::check_status(&self.storage, self.controller_port, &self.secret)
+            .await
+            .map_err(|e| AppError::from(e.to_string()))
     }
 
     /// Start native Mihomo kernel
@@ -1010,7 +1024,12 @@ impl AppService {
         ];
         let mut geoip_ok = false;
         for url in &geoip_urls {
-            if self.storage.download_file_to(url, &geoip_dest).await.is_ok() {
+            if self
+                .storage
+                .download_file_to(url, &geoip_dest)
+                .await
+                .is_ok()
+            {
                 geoip_ok = true;
                 break;
             }
@@ -1026,7 +1045,12 @@ impl AppService {
         ];
         let mut geosite_ok = false;
         for url in &geosite_urls {
-            if self.storage.download_file_to(url, &geosite_dest).await.is_ok() {
+            if self
+                .storage
+                .download_file_to(url, &geosite_dest)
+                .await
+                .is_ok()
+            {
                 geosite_ok = true;
                 break;
             }

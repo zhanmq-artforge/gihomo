@@ -10,7 +10,7 @@ cd "$PROJECT_ROOT"
 
 APP_ID="art.artforge.Gihomo"
 PKG_NAME="gihomo"
-PKG_VERSION="1.0.2"
+PKG_VERSION="1.1.0"
 PKG_ARCH="amd64"
 OUTPUT_DIR="${PROJECT_ROOT}/dist"
 DEB_DIR="target/debian/${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}"

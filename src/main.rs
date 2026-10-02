@@ -31,6 +31,21 @@ fn main() -> ExitCode {
         .expect("Failed to initialize Tokio runtime");
     let _guard = rt.enter();
 
+    gihomo_ui::i18n::preload_config();
+    let app = GihomoApplication::new();
+
+    // Register with D-Bus to determine if we are the primary instance or a remote (secondary) instance
+    if let Err(e) = app.register(gio::Cancellable::NONE) {
+        tracing::warn!("Failed to register application on D-Bus: {}", e);
+    }
+
+    if app.is_remote() {
+        info!("Running as secondary instance, forwarding activation to primary instance");
+        return app.run();
+    }
+
+    // --- Below is ONLY executed by the Primary Instance ---
+
     // Create a persistent local-only controller secret before starting background tasks.
     let service = rt
         .block_on(AppService::new(7890, 9090))
@@ -42,12 +57,9 @@ fn main() -> ExitCode {
         svc_clone.init().await;
     });
 
-    gihomo_ui::i18n::preload_config();
-    let app = GihomoApplication::new();
     app.set_service(service.clone());
 
     // Listen for Unix SIGINT (Ctrl+C) and SIGTERM to initiate graceful shutdown
-    let svc_signal = service.clone();
     tokio::spawn(async move {
         use tokio::signal::unix::{signal, SignalKind};
         let mut sigint = signal(SignalKind::interrupt()).ok();
@@ -74,7 +86,6 @@ fn main() -> ExitCode {
             }
         }
 
-        svc_signal.shutdown().await;
         glib::idle_add_once(|| {
             if let Some(app) = gio::Application::default() {
                 use gio::prelude::*;
@@ -84,10 +95,6 @@ fn main() -> ExitCode {
     });
 
     let status = app.run();
-    let svc_cleanup = service.clone();
-    rt.block_on(async move {
-        svc_cleanup.shutdown().await;
-    });
-    info!(exit_code = ?status, "Gihomo terminated gracefully");
+    info!(exit_code = ?status, "Gihomo primary instance terminated gracefully");
     status
 }

@@ -1,23 +1,27 @@
 use adw::prelude::*;
 use gihomo_app::{AppEvent, AppService};
 use gtk4::subclass::prelude::*;
+use std::cell::RefCell;
 use std::rc::Rc;
 use tracing::info;
 
 use crate::views::{
-    ConnectionsView, DashboardView, LogsView, ProxiesView, RulesView, SettingsView, SubscriptionsView,
+    ConnectionsView, DashboardView, LogsView, ProxiesView, RulesView, SettingsView,
+    SubscriptionsView,
 };
 
 mod imp {
     use super::*;
 
-    #[derive(Debug, Default)]
+    #[derive(Default)]
     pub struct MainWindow {
         pub toast_overlay: adw::ToastOverlay,
         pub split_view: adw::NavigationSplitView,
         pub sidebar_page: adw::NavigationPage,
         pub sidebar_header: adw::HeaderBar,
         pub sidebar_list: gtk4::ListBox,
+        pub dashboard: RefCell<Option<Rc<DashboardView>>>,
+        pub service: RefCell<Option<AppService>>,
     }
 
     #[glib::object_subclass]
@@ -91,7 +95,45 @@ glib::wrapper! {
 }
 
 impl MainWindow {
+    fn init_custom_styles() {
+        let provider = gtk4::CssProvider::new();
+        provider.load_from_string(
+            r#"
+            list.navigation-sidebar > row.sidebar-separator {
+                padding: 0px;
+                margin-top: 6px;
+                margin-bottom: 6px;
+                margin-left: 12px;
+                margin-right: 12px;
+                min-height: 1px;
+                max-height: 1px;
+                background: none;
+                border: none;
+                border-radius: 0px;
+                box-shadow: none;
+                outline: none;
+            }
+            list.navigation-sidebar > row.sidebar-separator:hover {
+                background: none;
+            }
+            .sidebar-separator-line {
+                min-height: 1px;
+                max-height: 1px;
+                background-color: alpha(currentColor, 0.15);
+            }
+            "#,
+        );
+        if let Some(display) = gtk4::gdk::Display::default() {
+            gtk4::style_context_add_provider_for_display(
+                &display,
+                &provider,
+                gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+            );
+        }
+    }
+
     pub fn new(app: &impl IsA<gtk4::Application>, service: AppService) -> Self {
+        Self::init_custom_styles();
         let win: Self = glib::Object::builder().property("application", app).build();
 
         win.connect_close_request(|w| {
@@ -107,7 +149,32 @@ impl MainWindow {
         });
 
         win.setup_views_and_events(service);
+        win.connect_notify_local(Some("visible"), |w, _| {
+            if w.is_visible() {
+                w.resync_runtime_state();
+            }
+        });
         win
+    }
+
+    pub fn resync_runtime_state(&self) {
+        let imp = self.imp();
+        if let (Some(db), Some(service)) = (
+            imp.dashboard.borrow().clone(),
+            imp.service.borrow().clone(),
+        ) {
+            glib::MainContext::default().spawn_local(async move {
+                if let Ok(status) = service.check_kernel_status().await {
+                    db.update_kernel_status(&status);
+                }
+                db.update_proxy_status(service.is_proxy_enabled());
+                db.update_tun_status(service.is_tun_enabled());
+                if let Some(active) = service.get_active_subscription().await {
+                    db.update_active_subscription(Some(&active));
+                }
+                let _ = service.fetch_proxies().await;
+            });
+        }
     }
 
     fn create_sidebar_item(
@@ -137,10 +204,27 @@ impl MainWindow {
         (row, label)
     }
 
+    fn create_sidebar_separator() -> gtk4::ListBoxRow {
+        let row = gtk4::ListBoxRow::new();
+        row.set_selectable(false);
+        row.set_activatable(false);
+        row.set_focusable(false);
+        row.add_css_class("sidebar-separator");
+
+        let line = gtk4::Box::new(gtk4::Orientation::Horizontal, 0);
+        line.set_height_request(1);
+        line.add_css_class("sidebar-separator-line");
+        row.set_child(Some(&line));
+        row
+    }
+
     fn setup_views_and_events(&self, service: AppService) {
         let imp = self.imp();
 
         let dashboard = Rc::new(DashboardView::new(service.clone()));
+        imp.dashboard.replace(Some(dashboard.clone()));
+        imp.service.replace(Some(service.clone()));
+
         let proxies = Rc::new(ProxiesView::new(service.clone()));
         let rules = Rc::new(RulesView::new(service.clone()));
         let connections = Rc::new(ConnectionsView::new(service.clone()));
@@ -159,23 +243,29 @@ impl MainWindow {
             Self::create_sidebar_item("tab_dashboard", "speedometer-symbolic");
         let (row_proxies, lbl_proxies) =
             Self::create_sidebar_item("tab_proxies", "network-server-symbolic");
-        let (row_rules, lbl_rules) =
-            Self::create_sidebar_item("tab_rules", "view-list-bullet-symbolic");
-        let (row_conns, lbl_conns) =
-            Self::create_sidebar_item("tab_connections", "network-transmit-receive-symbolic");
-        let (row_logs, lbl_logs) =
-            Self::create_sidebar_item("tab_logs", "utilities-terminal-symbolic");
         let (row_subs, lbl_subs) =
             Self::create_sidebar_item("tab_subscriptions", "emblem-documents-symbolic");
+        let (row_conns, lbl_conns) =
+            Self::create_sidebar_item("tab_connections", "network-transmit-receive-symbolic");
+        let (row_rules, lbl_rules) =
+            Self::create_sidebar_item("tab_rules", "view-list-bullet-symbolic");
+        let (row_logs, lbl_logs) =
+            Self::create_sidebar_item("tab_logs", "utilities-terminal-symbolic");
         let (row_settings, lbl_settings) =
             Self::create_sidebar_item("tab_settings", "preferences-system-symbolic");
 
+        // Visual separators between functional tiers
+        let sep1 = Self::create_sidebar_separator();
+        let sep2 = Self::create_sidebar_separator();
+
         imp.sidebar_list.append(&row_dash);
         imp.sidebar_list.append(&row_proxies);
-        imp.sidebar_list.append(&row_rules);
-        imp.sidebar_list.append(&row_conns);
-        imp.sidebar_list.append(&row_logs);
         imp.sidebar_list.append(&row_subs);
+        imp.sidebar_list.append(&sep1);
+        imp.sidebar_list.append(&row_conns);
+        imp.sidebar_list.append(&row_rules);
+        imp.sidebar_list.append(&row_logs);
+        imp.sidebar_list.append(&sep2);
         imp.sidebar_list.append(&row_settings);
 
         // Sidebar Navigation Logic
@@ -183,39 +273,55 @@ impl MainWindow {
             let split_view = imp.split_view.clone();
             let dashboard = dashboard.clone();
             let proxies = proxies.clone();
-            let rules = rules.clone();
-            let connections = connections.clone();
-            let logs = logs.clone();
             let subscriptions = subscriptions.clone();
+            let connections = connections.clone();
+            let rules = rules.clone();
+            let logs = logs.clone();
             let settings = settings.clone();
             let service = service.clone();
 
-            Rc::new(move |index: i32| {
-                let page: &adw::NavigationPage = match index {
-                    0 => &dashboard.page,
-                    1 => {
-                        let service = service.clone();
-                        glib::MainContext::default().spawn_local(async move {
-                            let _ = service.fetch_proxies().await;
-                        });
-                        &proxies.page
-                    }
-                    2 => {
-                        let service = service.clone();
-                        glib::MainContext::default().spawn_local(async move {
-                            let _ = service.fetch_rules().await;
-                            let _ = service.fetch_rule_providers().await;
-                        });
-                        &rules.page
-                    }
-                    3 => {
-                        connections.fetch_connections();
-                        &connections.page
-                    }
-                    4 => &logs.page,
-                    5 => &subscriptions.page,
-                    6 => &settings.page,
-                    _ => &dashboard.page,
+            let row_dash = row_dash.clone();
+            let row_proxies = row_proxies.clone();
+            let row_subs = row_subs.clone();
+            let row_conns = row_conns.clone();
+            let row_rules = row_rules.clone();
+            let row_logs = row_logs.clone();
+            let row_settings = row_settings.clone();
+
+            Rc::new(move |selected_row: &gtk4::ListBoxRow| {
+                let page: &adw::NavigationPage = if selected_row == &row_dash {
+                    &dashboard.page
+                } else if selected_row == &row_proxies {
+                    let service = service.clone();
+                    glib::MainContext::default().spawn_local(async move {
+                        let _ = service.fetch_proxies().await;
+                    });
+                    &proxies.page
+                } else if selected_row == &row_subs {
+                    let service = service.clone();
+                    let sub_clone = subscriptions.clone();
+                    glib::MainContext::default().spawn_local(async move {
+                        if let Ok(subs) = service.get_subscriptions().await {
+                            sub_clone.update_subscriptions(&subs);
+                        }
+                    });
+                    &subscriptions.page
+                } else if selected_row == &row_conns {
+                    connections.fetch_connections();
+                    &connections.page
+                } else if selected_row == &row_rules {
+                    let service = service.clone();
+                    glib::MainContext::default().spawn_local(async move {
+                        let _ = service.fetch_rules().await;
+                        let _ = service.fetch_rule_providers().await;
+                    });
+                    &rules.page
+                } else if selected_row == &row_logs {
+                    &logs.page
+                } else if selected_row == &row_settings {
+                    &settings.page
+                } else {
+                    &dashboard.page
                 };
                 split_view.set_content(Some(page));
                 split_view.set_show_content(true);
@@ -226,14 +332,14 @@ impl MainWindow {
             let nav = navigate_to.clone();
             imp.sidebar_list.connect_row_selected(move |_, row_opt| {
                 if let Some(row) = row_opt {
-                    nav(row.index());
+                    nav(row);
                 }
             });
         }
         {
             let nav = navigate_to.clone();
             imp.sidebar_list.connect_row_activated(move |_, row| {
-                nav(row.index());
+                nav(row);
             });
         }
 
@@ -264,28 +370,25 @@ impl MainWindow {
         let sidebar_page_clone = imp.sidebar_page.clone();
 
         glib::MainContext::default().spawn_local(async move {
-            loop {
-                match lang_rx.recv().await {
-                    Ok(()) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                        sidebar_page_clone.set_title(crate::i18n::tr("app_name"));
-                        lbl_dash.set_label(crate::i18n::tr("tab_dashboard"));
-                        lbl_proxies.set_label(crate::i18n::tr("tab_proxies"));
-                        lbl_rules.set_label(crate::i18n::tr("tab_rules"));
-                        lbl_conns.set_label(crate::i18n::tr("tab_connections"));
-                        lbl_logs.set_label(crate::i18n::tr("tab_logs"));
-                        lbl_subs.set_label(crate::i18n::tr("tab_subscriptions"));
-                        lbl_settings.set_label(crate::i18n::tr("tab_settings"));
+            while let Ok(()) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) =
+                lang_rx.recv().await
+            {
+                sidebar_page_clone.set_title(crate::i18n::tr("app_name"));
+                lbl_dash.set_label(crate::i18n::tr("tab_dashboard"));
+                lbl_proxies.set_label(crate::i18n::tr("tab_proxies"));
+                lbl_subs.set_label(crate::i18n::tr("tab_subscriptions"));
+                lbl_conns.set_label(crate::i18n::tr("tab_connections"));
+                lbl_rules.set_label(crate::i18n::tr("tab_rules"));
+                lbl_logs.set_label(crate::i18n::tr("tab_logs"));
+                lbl_settings.set_label(crate::i18n::tr("tab_settings"));
 
-                        db_for_lang.update_ui_text();
-                        proxies_for_lang.update_ui_text();
-                        rules_for_lang.update_ui_text();
-                        conns_for_lang.update_ui_text();
-                        logs_for_lang.update_ui_text();
-                        subs_for_lang.update_ui_text();
-                        settings_for_lang.update_ui_text();
-                    }
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                }
+                db_for_lang.update_ui_text();
+                proxies_for_lang.update_ui_text();
+                rules_for_lang.update_ui_text();
+                conns_for_lang.update_ui_text();
+                logs_for_lang.update_ui_text();
+                subs_for_lang.update_ui_text();
+                settings_for_lang.update_ui_text();
             }
         });
 

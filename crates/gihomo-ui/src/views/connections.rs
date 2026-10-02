@@ -413,7 +413,11 @@ impl ConnectionsView {
                 tr("conn_rule_label"),
                 conn.rule,
                 tr("conn_chain_label"),
-                if chain_str.is_empty() { "-" } else { &chain_str }
+                if chain_str.is_empty() {
+                    "-"
+                } else {
+                    &chain_str
+                }
             );
             expander.set_subtitle(&subtitle);
 
@@ -458,7 +462,10 @@ impl ConnectionsView {
             // Sub-row 1: Source Address
             let src_row = adw::ActionRow::builder()
                 .title(tr("conn_src_addr"))
-                .subtitle(format!("{}:{}", conn.metadata.source_ip, conn.metadata.source_port))
+                .subtitle(format!(
+                    "{}:{}",
+                    conn.metadata.source_ip, conn.metadata.source_port
+                ))
                 .title_lines(1)
                 .subtitle_lines(1)
                 .build();
@@ -467,7 +474,10 @@ impl ConnectionsView {
             // Sub-row 2: Destination IP & Port
             let dst_row = adw::ActionRow::builder()
                 .title(tr("conn_dst_addr"))
-                .subtitle(format!("{}:{}", conn.metadata.destination_ip, conn.metadata.destination_port))
+                .subtitle(format!(
+                    "{}:{}",
+                    conn.metadata.destination_ip, conn.metadata.destination_port
+                ))
                 .title_lines(1)
                 .subtitle_lines(1)
                 .build();

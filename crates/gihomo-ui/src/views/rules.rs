@@ -2,9 +2,7 @@ use crate::i18n::tr;
 use adw::prelude::*;
 use gihomo_app::AppService;
 use gihomo_core::{RuleItem, RuleProvider};
-use gtk4::{
-    Button, Label, Orientation, ScrolledWindow, SearchEntry,
-};
+use gtk4::{Button, Label, Orientation, ScrolledWindow, SearchEntry};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
@@ -402,6 +400,7 @@ impl RulesView {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_rules(
         rules: &[RuleItem],
         filter: &str,
@@ -641,11 +640,15 @@ impl RulesView {
     pub fn update_ui_text(&self) {
         self.page.set_title(tr("tab_rules"));
         self.status_page.set_title(tr("empty_rules_title"));
-        self.status_page.set_description(Some(tr("empty_rules_desc")));
-        self.search_entry.set_placeholder_text(Some(tr("rules_search_placeholder")));
-        self.refresh_btn.set_tooltip_text(Some(tr("rules_refresh_tooltip")));
+        self.status_page
+            .set_description(Some(tr("empty_rules_desc")));
+        self.search_entry
+            .set_placeholder_text(Some(tr("rules_search_placeholder")));
+        self.refresh_btn
+            .set_tooltip_text(Some(tr("rules_refresh_tooltip")));
         self.providers_group.set_title(tr("rules_providers_title"));
-        self.providers_group.set_description(Some(tr("rules_providers_desc")));
+        self.providers_group
+            .set_description(Some(tr("rules_providers_desc")));
         self.rules_group.set_title(tr("rules_list_title"));
         self.load_more_btn.set_label(tr("btn_load_more"));
         Self::render_rules(

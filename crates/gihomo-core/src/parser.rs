@@ -104,12 +104,27 @@ pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, String> {
     };
 
     let mut map = Mapping::new();
-    map.insert(Value::String("name".to_string()), Value::String(name.clone()));
-    map.insert(Value::String("type".to_string()), Value::String("ss".to_string()));
-    map.insert(Value::String("server".to_string()), Value::String(host.clone()));
-    map.insert(Value::String("port".to_string()), Value::Number(port.into()));
+    map.insert(
+        Value::String("name".to_string()),
+        Value::String(name.clone()),
+    );
+    map.insert(
+        Value::String("type".to_string()),
+        Value::String("ss".to_string()),
+    );
+    map.insert(
+        Value::String("server".to_string()),
+        Value::String(host.clone()),
+    );
+    map.insert(
+        Value::String("port".to_string()),
+        Value::Number(port.into()),
+    );
     map.insert(Value::String("cipher".to_string()), Value::String(cipher));
-    map.insert(Value::String("password".to_string()), Value::String(password));
+    map.insert(
+        Value::String("password".to_string()),
+        Value::String(password),
+    );
     map.insert(Value::String("udp".to_string()), Value::Bool(true));
 
     Ok(ParsedProxyNode {
@@ -129,8 +144,8 @@ pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, String> {
         .ok_or_else(|| "缺少 vmess:// 前缀".to_string())?;
 
     let json_str = decode_base64_flexible(b64)?;
-    let val: serde_json::Value = serde_json::from_str(&json_str)
-        .map_err(|e| format!("VMess JSON 解析失败: {}", e))?;
+    let val: serde_json::Value =
+        serde_json::from_str(&json_str).map_err(|e| format!("VMess JSON 解析失败: {}", e))?;
 
     let server = val
         .get("add")
@@ -203,15 +218,36 @@ pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, String> {
         .and_then(|v| v.as_str())
         .filter(|s| !s.trim().is_empty())
         .map(|s| s.trim().to_string())
-        .or_else(|| if !host.is_empty() { Some(host.clone()) } else { None });
+        .or_else(|| {
+            if !host.is_empty() {
+                Some(host.clone())
+            } else {
+                None
+            }
+        });
 
     let mut map = Mapping::new();
-    map.insert(Value::String("name".to_string()), Value::String(name.clone()));
-    map.insert(Value::String("type".to_string()), Value::String("vmess".to_string()));
-    map.insert(Value::String("server".to_string()), Value::String(server.clone()));
-    map.insert(Value::String("port".to_string()), Value::Number(port.into()));
+    map.insert(
+        Value::String("name".to_string()),
+        Value::String(name.clone()),
+    );
+    map.insert(
+        Value::String("type".to_string()),
+        Value::String("vmess".to_string()),
+    );
+    map.insert(
+        Value::String("server".to_string()),
+        Value::String(server.clone()),
+    );
+    map.insert(
+        Value::String("port".to_string()),
+        Value::Number(port.into()),
+    );
     map.insert(Value::String("uuid".to_string()), Value::String(uuid));
-    map.insert(Value::String("alterId".to_string()), Value::Number(alter_id.into()));
+    map.insert(
+        Value::String("alterId".to_string()),
+        Value::Number(alter_id.into()),
+    );
     map.insert(Value::String("cipher".to_string()), Value::String(cipher));
     map.insert(Value::String("udp".to_string()), Value::Bool(true));
     map.insert(Value::String("tls".to_string()), Value::Bool(tls));
@@ -221,18 +257,34 @@ pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, String> {
     }
 
     if net == "ws" {
-        map.insert(Value::String("network".to_string()), Value::String("ws".to_string()));
+        map.insert(
+            Value::String("network".to_string()),
+            Value::String("ws".to_string()),
+        );
         let mut ws_opts = Mapping::new();
-        let ws_path = if path.is_empty() { "/".to_string() } else { path };
+        let ws_path = if path.is_empty() {
+            "/".to_string()
+        } else {
+            path
+        };
         ws_opts.insert(Value::String("path".to_string()), Value::String(ws_path));
         if !host.is_empty() {
             let mut headers = Mapping::new();
             headers.insert(Value::String("Host".to_string()), Value::String(host));
-            ws_opts.insert(Value::String("headers".to_string()), Value::Mapping(headers));
+            ws_opts.insert(
+                Value::String("headers".to_string()),
+                Value::Mapping(headers),
+            );
         }
-        map.insert(Value::String("ws-opts".to_string()), Value::Mapping(ws_opts));
+        map.insert(
+            Value::String("ws-opts".to_string()),
+            Value::Mapping(ws_opts),
+        );
     } else if net == "grpc" {
-        map.insert(Value::String("network".to_string()), Value::String("grpc".to_string()));
+        map.insert(
+            Value::String("network".to_string()),
+            Value::String("grpc".to_string()),
+        );
         let mut grpc_opts = Mapping::new();
         let service_name = if !path.is_empty() { path } else { host };
         if !service_name.is_empty() {
@@ -241,9 +293,15 @@ pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, String> {
                 Value::String(service_name),
             );
         }
-        map.insert(Value::String("grpc-opts".to_string()), Value::Mapping(grpc_opts));
+        map.insert(
+            Value::String("grpc-opts".to_string()),
+            Value::Mapping(grpc_opts),
+        );
     } else if net == "h2" {
-        map.insert(Value::String("network".to_string()), Value::String("h2".to_string()));
+        map.insert(
+            Value::String("network".to_string()),
+            Value::String("h2".to_string()),
+        );
         let mut h2_opts = Mapping::new();
         if !path.is_empty() {
             h2_opts.insert(Value::String("path".to_string()), Value::String(path));
@@ -254,7 +312,10 @@ pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, String> {
                 Value::Sequence(vec![Value::String(host)]),
             );
         }
-        map.insert(Value::String("h2-opts".to_string()), Value::Mapping(h2_opts));
+        map.insert(
+            Value::String("h2-opts".to_string()),
+            Value::Mapping(h2_opts),
+        );
     }
 
     Ok(ParsedProxyNode {
@@ -295,7 +356,10 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, String> {
     }
 
     let net = query_map.get("type").map(|s| s.as_str()).unwrap_or("tcp");
-    let security = query_map.get("security").map(|s| s.as_str()).unwrap_or("none");
+    let security = query_map
+        .get("security")
+        .map(|s| s.as_str())
+        .unwrap_or("none");
     let flow = query_map.get("flow").cloned();
     let sni = query_map.get("sni").cloned();
     let pbk = query_map.get("pbk").cloned();
@@ -306,10 +370,22 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, String> {
     let service_name = query_map.get("serviceName").cloned();
 
     let mut map = Mapping::new();
-    map.insert(Value::String("name".to_string()), Value::String(tag.clone()));
-    map.insert(Value::String("type".to_string()), Value::String("vless".to_string()));
-    map.insert(Value::String("server".to_string()), Value::String(server.clone()));
-    map.insert(Value::String("port".to_string()), Value::Number(port.into()));
+    map.insert(
+        Value::String("name".to_string()),
+        Value::String(tag.clone()),
+    );
+    map.insert(
+        Value::String("type".to_string()),
+        Value::String("vless".to_string()),
+    );
+    map.insert(
+        Value::String("server".to_string()),
+        Value::String(server.clone()),
+    );
+    map.insert(
+        Value::String("port".to_string()),
+        Value::Number(port.into()),
+    );
     map.insert(Value::String("uuid".to_string()), Value::String(uuid));
     map.insert(Value::String("udp".to_string()), Value::Bool(true));
 
@@ -330,7 +406,10 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, String> {
 
     if let Some(f) = fp {
         if !f.is_empty() {
-            map.insert(Value::String("client-fingerprint".to_string()), Value::String(f));
+            map.insert(
+                Value::String("client-fingerprint".to_string()),
+                Value::String(f),
+            );
         }
     }
 
@@ -342,11 +421,17 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, String> {
         if let Some(s) = sid {
             reality_opts.insert(Value::String("short-id".to_string()), Value::String(s));
         }
-        map.insert(Value::String("reality-opts".to_string()), Value::Mapping(reality_opts));
+        map.insert(
+            Value::String("reality-opts".to_string()),
+            Value::Mapping(reality_opts),
+        );
     }
 
     if net == "ws" {
-        map.insert(Value::String("network".to_string()), Value::String("ws".to_string()));
+        map.insert(
+            Value::String("network".to_string()),
+            Value::String("ws".to_string()),
+        );
         let mut ws_opts = Mapping::new();
         let ws_path = path.unwrap_or_else(|| "/".to_string());
         ws_opts.insert(Value::String("path".to_string()), Value::String(ws_path));
@@ -354,19 +439,34 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, String> {
             if !h.is_empty() {
                 let mut headers = Mapping::new();
                 headers.insert(Value::String("Host".to_string()), Value::String(h));
-                ws_opts.insert(Value::String("headers".to_string()), Value::Mapping(headers));
+                ws_opts.insert(
+                    Value::String("headers".to_string()),
+                    Value::Mapping(headers),
+                );
             }
         }
-        map.insert(Value::String("ws-opts".to_string()), Value::Mapping(ws_opts));
+        map.insert(
+            Value::String("ws-opts".to_string()),
+            Value::Mapping(ws_opts),
+        );
     } else if net == "grpc" {
-        map.insert(Value::String("network".to_string()), Value::String("grpc".to_string()));
+        map.insert(
+            Value::String("network".to_string()),
+            Value::String("grpc".to_string()),
+        );
         let mut grpc_opts = Mapping::new();
         if let Some(s) = service_name {
             if !s.is_empty() {
-                grpc_opts.insert(Value::String("grpc-service-name".to_string()), Value::String(s));
+                grpc_opts.insert(
+                    Value::String("grpc-service-name".to_string()),
+                    Value::String(s),
+                );
             }
         }
-        map.insert(Value::String("grpc-opts".to_string()), Value::Mapping(grpc_opts));
+        map.insert(
+            Value::String("grpc-opts".to_string()),
+            Value::Mapping(grpc_opts),
+        );
     }
 
     Ok(ParsedProxyNode {
@@ -406,7 +506,10 @@ pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, String> {
         query_map.insert(k.to_string(), v.to_string());
     }
 
-    let sni = query_map.get("sni").cloned().unwrap_or_else(|| server.clone());
+    let sni = query_map
+        .get("sni")
+        .cloned()
+        .unwrap_or_else(|| server.clone());
     let allow_insecure = query_map
         .get("allowInsecure")
         .or_else(|| query_map.get("insecure"))
@@ -414,15 +517,33 @@ pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, String> {
         .unwrap_or(false);
 
     let mut map = Mapping::new();
-    map.insert(Value::String("name".to_string()), Value::String(tag.clone()));
-    map.insert(Value::String("type".to_string()), Value::String("trojan".to_string()));
-    map.insert(Value::String("server".to_string()), Value::String(server.clone()));
-    map.insert(Value::String("port".to_string()), Value::Number(port.into()));
-    map.insert(Value::String("password".to_string()), Value::String(password));
+    map.insert(
+        Value::String("name".to_string()),
+        Value::String(tag.clone()),
+    );
+    map.insert(
+        Value::String("type".to_string()),
+        Value::String("trojan".to_string()),
+    );
+    map.insert(
+        Value::String("server".to_string()),
+        Value::String(server.clone()),
+    );
+    map.insert(
+        Value::String("port".to_string()),
+        Value::Number(port.into()),
+    );
+    map.insert(
+        Value::String("password".to_string()),
+        Value::String(password),
+    );
     map.insert(Value::String("udp".to_string()), Value::Bool(true));
     map.insert(Value::String("sni".to_string()), Value::String(sni));
     if allow_insecure {
-        map.insert(Value::String("skip-cert-verify".to_string()), Value::Bool(true));
+        map.insert(
+            Value::String("skip-cert-verify".to_string()),
+            Value::Bool(true),
+        );
     }
 
     Ok(ParsedProxyNode {
@@ -443,7 +564,8 @@ pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, String> {
         raw.to_string()
     };
 
-    let parsed_url = Url::parse(&normalized).map_err(|e| format!("Hysteria 2 URL 解析失败: {}", e))?;
+    let parsed_url =
+        Url::parse(&normalized).map_err(|e| format!("Hysteria 2 URL 解析失败: {}", e))?;
 
     let auth = percent_decode(parsed_url.username());
     let server = parsed_url
@@ -464,30 +586,54 @@ pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, String> {
         query_map.insert(k.to_string(), v.to_string());
     }
 
-    let sni = query_map.get("sni").cloned().unwrap_or_else(|| server.clone());
+    let sni = query_map
+        .get("sni")
+        .cloned()
+        .unwrap_or_else(|| server.clone());
     let insecure = query_map
         .get("insecure")
         .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
         .unwrap_or(false);
 
     let mut map = Mapping::new();
-    map.insert(Value::String("name".to_string()), Value::String(tag.clone()));
-    map.insert(Value::String("type".to_string()), Value::String("hysteria2".to_string()));
-    map.insert(Value::String("server".to_string()), Value::String(server.clone()));
-    map.insert(Value::String("port".to_string()), Value::Number(port.into()));
+    map.insert(
+        Value::String("name".to_string()),
+        Value::String(tag.clone()),
+    );
+    map.insert(
+        Value::String("type".to_string()),
+        Value::String("hysteria2".to_string()),
+    );
+    map.insert(
+        Value::String("server".to_string()),
+        Value::String(server.clone()),
+    );
+    map.insert(
+        Value::String("port".to_string()),
+        Value::Number(port.into()),
+    );
     if !auth.is_empty() {
         map.insert(Value::String("password".to_string()), Value::String(auth));
     }
     map.insert(Value::String("sni".to_string()), Value::String(sni));
     if insecure {
-        map.insert(Value::String("skip-cert-verify".to_string()), Value::Bool(true));
+        map.insert(
+            Value::String("skip-cert-verify".to_string()),
+            Value::Bool(true),
+        );
     }
 
     if let Some(obfs) = query_map.get("obfs") {
-        map.insert(Value::String("obfs".to_string()), Value::String(obfs.clone()));
+        map.insert(
+            Value::String("obfs".to_string()),
+            Value::String(obfs.clone()),
+        );
     }
     if let Some(obfs_pass) = query_map.get("obfs-password") {
-        map.insert(Value::String("obfs-password".to_string()), Value::String(obfs_pass.clone()));
+        map.insert(
+            Value::String("obfs-password".to_string()),
+            Value::String(obfs_pass.clone()),
+        );
     }
 
     Ok(ParsedProxyNode {
@@ -544,7 +690,10 @@ pub fn parse_share_links(text: &str) -> (Vec<ParsedProxyNode>, Vec<String>) {
                 if unique_name != node.name {
                     node.name = unique_name.clone();
                     if let Value::Mapping(ref mut m) = node.raw_yaml {
-                        m.insert(Value::String("name".to_string()), Value::String(unique_name));
+                        m.insert(
+                            Value::String("name".to_string()),
+                            Value::String(unique_name),
+                        );
                     }
                 }
 
@@ -562,7 +711,9 @@ pub fn parse_share_links(text: &str) -> (Vec<ParsedProxyNode>, Vec<String>) {
 /// Generates a complete, functional Mihomo configuration YAML from parsed proxy nodes
 pub fn generate_profile_from_proxies(nodes: &[ParsedProxyNode]) -> Result<String, CoreError> {
     if nodes.is_empty() {
-        return Err(CoreError::InvalidSubscription("节点列表不能为空".to_string()));
+        return Err(CoreError::InvalidSubscription(
+            "节点列表不能为空".to_string(),
+        ));
     }
 
     let mut root = Mapping::new();
@@ -584,8 +735,14 @@ pub fn generate_profile_from_proxies(nodes: &[ParsedProxyNode]) -> Result<String
 
     // PROXY (Manual select group)
     let mut select_group = Mapping::new();
-    select_group.insert(Value::String("name".to_string()), Value::String("PROXY".to_string()));
-    select_group.insert(Value::String("type".to_string()), Value::String("select".to_string()));
+    select_group.insert(
+        Value::String("name".to_string()),
+        Value::String("PROXY".to_string()),
+    );
+    select_group.insert(
+        Value::String("type".to_string()),
+        Value::String("select".to_string()),
+    );
     let mut select_proxies = vec![Value::String("AUTO".to_string())];
     select_proxies.extend(proxy_names.clone());
     select_proxies.push(Value::String("DIRECT".to_string()));
@@ -597,14 +754,26 @@ pub fn generate_profile_from_proxies(nodes: &[ParsedProxyNode]) -> Result<String
 
     // AUTO (URL-Test auto speed test group)
     let mut auto_group = Mapping::new();
-    auto_group.insert(Value::String("name".to_string()), Value::String("AUTO".to_string()));
-    auto_group.insert(Value::String("type".to_string()), Value::String("url-test".to_string()));
+    auto_group.insert(
+        Value::String("name".to_string()),
+        Value::String("AUTO".to_string()),
+    );
+    auto_group.insert(
+        Value::String("type".to_string()),
+        Value::String("url-test".to_string()),
+    );
     auto_group.insert(
         Value::String("url".to_string()),
         Value::String("http://www.gstatic.com/generate_204".to_string()),
     );
-    auto_group.insert(Value::String("interval".to_string()), Value::Number(300.into()));
-    auto_group.insert(Value::String("tolerance".to_string()), Value::Number(50.into()));
+    auto_group.insert(
+        Value::String("interval".to_string()),
+        Value::Number(300.into()),
+    );
+    auto_group.insert(
+        Value::String("tolerance".to_string()),
+        Value::Number(50.into()),
+    );
     auto_group.insert(
         Value::String("proxies".to_string()),
         Value::Sequence(proxy_names.clone()),
@@ -613,13 +782,22 @@ pub fn generate_profile_from_proxies(nodes: &[ParsedProxyNode]) -> Result<String
 
     // FALLBACK group
     let mut fallback_group = Mapping::new();
-    fallback_group.insert(Value::String("name".to_string()), Value::String("FALLBACK".to_string()));
-    fallback_group.insert(Value::String("type".to_string()), Value::String("fallback".to_string()));
+    fallback_group.insert(
+        Value::String("name".to_string()),
+        Value::String("FALLBACK".to_string()),
+    );
+    fallback_group.insert(
+        Value::String("type".to_string()),
+        Value::String("fallback".to_string()),
+    );
     fallback_group.insert(
         Value::String("url".to_string()),
         Value::String("http://www.gstatic.com/generate_204".to_string()),
     );
-    fallback_group.insert(Value::String("interval".to_string()), Value::Number(300.into()));
+    fallback_group.insert(
+        Value::String("interval".to_string()),
+        Value::Number(300.into()),
+    );
     fallback_group.insert(
         Value::String("proxies".to_string()),
         Value::Sequence(proxy_names),
@@ -644,10 +822,7 @@ pub fn generate_profile_from_proxies(nodes: &[ParsedProxyNode]) -> Result<String
         Value::String("MATCH,PROXY".to_string()),
     ];
 
-    root.insert(
-        Value::String("rules".to_string()),
-        Value::Sequence(rules),
-    );
+    root.insert(Value::String("rules".to_string()), Value::Sequence(rules));
 
     serde_yaml::to_string(&Value::Mapping(root))
         .map_err(|e| CoreError::InvalidSubscription(format!("序列化节点配置失败: {}", e)))

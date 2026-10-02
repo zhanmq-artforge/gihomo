@@ -270,4 +270,3 @@ pub struct LogMessage {
     #[serde(default)]
     pub payload: String,
 }
-

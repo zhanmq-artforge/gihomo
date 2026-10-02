@@ -33,20 +33,21 @@
 * **🎨 Native GNOME & Ubuntu Settings User Experience**:
   * Built strictly on GTK4 and Libadwaita 1.5+ adhering to GNOME Human Interface Guidelines (HIG).
   * Ubuntu Settings / GNOME Control Center adaptive navigation split view (`AdwNavigationSplitView`) with responsive sidebar collapse on compact screens.
+  * **Frequency-tiered sidebar navigation** with native 1px dividers: Tier 1 (Dashboard, Proxies, Subscriptions), Tier 2 (Connections, Rules, Logs), Tier 3 (Settings).
   * Rich visual feedback with animated loading spinners, debounced operations, and status toasts.
   * System proxy synchronization directly via GNOME GSettings (`org.gnome.system.proxy`).
   * Dark / Light / Follow-System color scheme support.
 * **🌐 Live In-Place i18n Hot-Switching**:
   * Comprehensive bilingual support for **Simplified Chinese (`zh-CN`)** and **English (`en-US`)**.
   * Auto-detects system locale on startup with graceful English fallback.
-  * Preferences dialog (`Ctrl+,`) with **instant zero-restart live language and theme switching**.
+  * Settings view with **instant zero-restart live language and theme switching**.
 * **📊 Real-time Telemetry & Traffic Monitoring**:
   * High-frequency WebSocket streaming from Mihomo's controller API consuming real-time instant speeds without jitter.
   * Real-time upstream and downstream throughput gauges and session bandwidth accumulators.
 * **🔔 Native System Tray & Background Daemon Integration**:
   * Pure Rust D-Bus StatusNotifierItem (SNI) integration via `ksni`, fully compatible with GNOME Shell (AppIndicator), KDE Plasma, XFCE, and Sway.
-  * Comprehensive context menu: Open Dashboard, System Proxy toggle, TUN toggle, Proxy Mode switcher (Rule / Global / Direct), and Quit.
-  * Left-click tray icon to instantly present the window, real-time status tooltip, and bidirectional state synchronization.
+  * Comprehensive context menu: Open Dashboard, **Quick Subscription Switcher** (dynamic submenu with live active checkmark `✓`), System Proxy toggle, TUN toggle, Proxy Mode switcher (Rule / Global / Direct), and Quit.
+  * Left-click tray icon to instantly present the window, real-time status tooltip displaying current active subscription, system proxy, TUN, and routing mode.
   * Close-to-tray window minimization, background daemon lifecycle persistence (`gio::ApplicationHoldGuard`), and system login autostart (`--minimized`).
 * **🚀 Ultra-Lightweight Native Resource Footprint**:
   * Native Mihomo kernel ~60MB RAM + Native GTK4/Libadwaita UI ~170MB RAM $\approx$ **~230MB total memory consumption** (only ~1/3 to 1/4 of Chromium/Electron-based proxy clients consuming 700–800MB+).
@@ -56,10 +57,11 @@
   * External Rule Providers management with one-click upstream update triggers.
   * Optimized list virtualization supporting thousands of rules without UI stutter.
 * **⚡ Native Proxy Selection & Granular Latency Testing**:
-  * Standalone clean header with proxy group title, wrapped multi-line subtitle, and batch testing controls.
+  * Full-width dedicated action toolbar (`hexpand(true)`) with instant keyword search, batch ping (`⚡`), and reload (`🔄`), completely eliminating layout shift.
+  * Breakpoint-aware adaptive layout (`max-width: 560px`): wraps current node badges under group name, node metadata under node name, eliminating overflow on compact screens.
   * Standardized Libadwaita `gtk::DropDown` selector for proxy groups, free of custom CSS hacks.
   * In-place diff updates: refreshes latency badges and selections without scroll jumps or list re-rendering.
-  * Individual on-demand node latency probing with color-graded badges (Green < 400ms, Orange 400-1000ms, Red > 1000ms / Timeout).
+  * Individual on-demand node latency probing with dedicated ping buttons and color-graded badges (Green < 400ms, Orange 400-1000ms, Red > 1000ms / Timeout).
 * **🌍 GeoIP & GeoSite Database Management**:
   * Built-in Geo database manager inspecting file presence, file size, and last updated timestamps.
   * One-click upstream database updater pulling directly from official/mirror sources with automatic kernel reload.
@@ -160,8 +162,8 @@ cargo run
 #### Debian / Ubuntu (`.deb`)
 ```bash
 ./scripts/package-deb.sh
-# Generated artifact: dist/gihomo_1.0.2_amd64.deb
-sudo dpkg -i dist/gihomo_1.0.2_amd64.deb
+# Generated artifact: dist/gihomo_1.1.0_amd64.deb
+sudo dpkg -i dist/gihomo_1.1.0_amd64.deb
 ```
 
 #### Fedora / RHEL (`.rpm`)
@@ -171,16 +173,6 @@ sudo dpkg -i dist/gihomo_1.0.2_amd64.deb
 cargo install cargo-generate-rpm
 cargo generate-rpm
 ```
-
----
-
-### ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl + ,` | Open Preferences Dialog |
-| `Ctrl + Q` | Quit Application |
-| `F5` / `Ctrl + R` | Refresh Current View / Data |
 
 ---
 
@@ -207,6 +199,7 @@ cargo generate-rpm
   * 集成标准 FreeDesktop Polkit 策略文件（`/usr/share/polkit-1/rules.d/art.artforge.Gihomo.rules`），授权 `systemd-resolved` D-Bus 接口配置 DNS 劫持，**彻底终结开启 TUN 时的多次密码弹窗困扰**。
 * **🎨 GNOME 与 Ubuntu 系统设置原生风格**：
   * 深度遵循 GNOME 人机交互指南（HIG），采用 Ubuntu 系统设置风格自适应侧边栏分栏（`AdwNavigationSplitView`）；
+  * **高频优先的侧边栏功能梯队**：以原生 1px 细线优雅隔离三大使用梯队（核心日常：仪表盘/节点代理/订阅管理；诊断排查：连接监控/分流规则/实时日志；通用：应用设置）；
   * 完美适配小尺寸视口：窄屏下自动收缩为单列页面导航并在顶栏提供原生 `< 返回` 按钮，宽屏下展开双栏；
   * 丰富生动的交互状态反馈：内核启停动态 Spinner 指示器、订阅刷新微动画、节点测速状态切换与操作防抖锁定；
   * 深度集成 GNOME GSettings（`org.gnome.system.proxy`），一键同步系统 HTTP/Socks 代理设置；
@@ -217,10 +210,11 @@ cargo generate-rpm
   * 外部规则集（Rule Providers）状态追踪与一键手动拉取更新；
   * 采用分段虚拟渲染优化，轻松承载上万条分流规则极速滚动不卡顿。
 * **⚡ 原生节点选择与细粒度延迟测速**：
-  * 独立规范原生 Header，展示策略组标题、换行副标题与批量测速/刷新操作；
+  * 通栏自适应操作工具栏：搜索框、批量测速 `[⚡]` 与刷新 `[🔄]` 独占一行且等宽自适应（`hexpand: true`），消除拉伸窗口时的跳行动画；
+  * 窄屏断点自适应下沉（`≤ 560px`）：策略组已选节点及单节点元数据自动换行下沉至标题正下方并精准缩进，360px 视口下长文本末尾智能省略，彻底杜绝内容截断挤压；
   * 策略组切换采用原生 Libadwaita `gtk::DropDown` 下拉控件，彻底移除多余自定义 CSS，体验高度贴合 GNOME 桌面；
   * 原地增量刷新（In-Place Diff Update）：节点列表刷新与测速结果更新时原地更新数据，不重建控件，彻底消除滚动条跳动与界面闪烁；
-  * 节点列表中每个节点均支持单节点独立延迟测速，提供色彩分级 Badge 反馈（绿色 < 400ms、橙色 400-1000ms、红色 > 1000ms 或超时）。
+  * 节点列表中每个节点均配备专属独立即时测速图标按钮，提供色彩分级 Badge 反馈（绿色 < 400ms、橙色 400-1000ms、红色 > 1000ms 或超时）。
 * **🌍 GeoIP 与 GeoSite 数据库管理**：
   * “设置”界面内置 Geo 数据库看板，清晰显示数据库存在状态、文件体积与最后更新时间；
   * 支持官方源及镜像加速一键在线更新，更新后自动触发内核配置热重载。
@@ -229,14 +223,14 @@ cargo generate-rpm
   * 挂接应用退出、窗口关闭与系统 SIGINT/SIGTERM 信号的统筹清理（Teardown hook），自动将系统代理复位为直连模式，防止用户断网。
 * **🔔 原生系统托盘与常驻后台守护**：
   * 基于纯 Rust `ksni` 库接入 Linux 现代桌面标准的 StatusNotifierItem (SNI) D-Bus 协议，原生兼容 GNOME (AppIndicator)、KDE Plasma、XFCE 及 Sway 等桌面；
-  * **完备托盘菜单**：打开主界面、系统代理快速切换、TUN 模式开关、分流模式切换（规则/全局/直连）及安全退出；
-  * 鼠标左键点击托盘图标即时唤醒置顶窗口，悬浮提示 Tooltip 实时呈现网络状态；
+  * **完备托盘菜单**：打开主界面、**一键快速切换订阅**（动态子菜单实时标识当前激活订阅 `✓`，后台即时静默重载）、系统代理开关、TUN 模式开关、分流模式切换（规则/全局/直连）及安全退出；
+  * 鼠标左键点击托盘图标即时唤醒置顶窗口，悬浮提示 Tooltip 实时呈现当前生效订阅与网络状态；
   * 支持关闭窗口时最小化至系统托盘、后台常驻守护（`gio::ApplicationHoldGuard`）与开机自启动（`--minimized`）。
 * **🚀 极致原生轻量低资源开销**：
   * 原生 Mihomo 内核进程内存仅约 60MB + 原生 GTK4/Libadwaita 界面仅约 170MB $\approx$ **常驻总内存约 230MB**（仅为 Electron/Chromium 类客户端动辄 700–800MB 内存的 1/3 ~ 1/4）。
 * **🌐 毫秒级即时热重载国际化 (i18n)**：
   * 完整支持 **简体中文 (`zh-CN`)** 与 **English (`en-US`)**；
-  * 启动自动侦测系统 Locale，偏好设置（`Ctrl+,`）支持**即时热重载**，切换后界面毫秒级无感刷新，无需重启程序。
+  * 启动自动侦测系统 Locale，“设置”页面支持**即时热重载**，切换后界面毫秒级无感刷新，无需重启程序。
 * **📊 实时流量与网络遥测**：
   * WebSocket 实时直连内核事件流，毫秒级直接呈现上下行瞬时速率，消除速率抖动与当次累计消耗流量。
 * **📑 现代自适应订阅管理与配置保真深度合成**：

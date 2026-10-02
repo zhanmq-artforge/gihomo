@@ -1,4 +1,5 @@
 use gihomo_app::{AppEvent, AppService};
+use gihomo_core::Subscription;
 use ksni::menu::{CheckmarkItem, MenuItem, StandardItem, SubMenu};
 use ksni::{Handle, ToolTip, Tray, TrayMethods};
 use tracing::{error, info};
@@ -8,11 +9,17 @@ pub struct GihomoTray {
     pub tun_enabled: bool,
     pub proxy_mode: String,
     pub kernel_error: bool,
+    pub subscriptions: Vec<Subscription>,
+    pub active_sub_id: Option<String>,
     service: AppService,
 }
 
 impl GihomoTray {
-    pub fn resolve_icon_name(proxy_enabled: bool, tun_enabled: bool, kernel_error: bool) -> &'static str {
+    pub fn resolve_icon_name(
+        proxy_enabled: bool,
+        tun_enabled: bool,
+        kernel_error: bool,
+    ) -> &'static str {
         if kernel_error {
             "art.artforge.Gihomo-red"
         } else if tun_enabled {
@@ -65,14 +72,22 @@ impl Tray for GihomoTray {
         } else {
             crate::i18n::tr("kernel_stopped")
         };
+        let active_sub_name = self
+            .subscriptions
+            .iter()
+            .find(|s| self.active_sub_id.as_deref() == Some(&s.id) || s.is_active)
+            .map(|s| s.name.as_str())
+            .unwrap_or("-");
         let desc = format!(
-            "{}: {} | {}: {} | {}: {}",
+            "{}: {} | {}: {} | {}: {} | {}: {}",
             crate::i18n::tr("tray_system_proxy"),
             proxy_status,
             crate::i18n::tr("tray_tun_mode"),
             tun_status,
             crate::i18n::tr("tray_proxy_mode"),
-            self.proxy_mode
+            self.proxy_mode,
+            crate::i18n::tr("tray_active_subscription"),
+            active_sub_name
         );
         ToolTip {
             title: crate::i18n::tr("app_name").to_string(),
@@ -90,6 +105,9 @@ impl Tray for GihomoTray {
                     if let Some(win) = gtk_app.windows().first() {
                         win.set_visible(true);
                         win.present();
+                        if let Some(main_win) = win.downcast_ref::<crate::window::MainWindow>() {
+                            main_win.resync_runtime_state();
+                        }
                         return;
                     }
                 }
@@ -114,6 +132,9 @@ impl Tray for GihomoTray {
                                 if let Some(win) = gtk_app.windows().first() {
                                     win.set_visible(true);
                                     win.present();
+                                    if let Some(main_win) = win.downcast_ref::<crate::window::MainWindow>() {
+                                        main_win.resync_runtime_state();
+                                    }
                                     return;
                                 }
                             }
@@ -208,9 +229,51 @@ impl Tray for GihomoTray {
             .into(),
         );
 
+        // 5. Subscription Switch Submenu
+        let active_id = self.active_sub_id.clone();
+        let sub_items: Vec<MenuItem<Self>> = if self.subscriptions.is_empty() {
+            vec![StandardItem::<Self> {
+                label: crate::i18n::tr("tray_no_subscriptions").to_string(),
+                enabled: false,
+                ..Default::default()
+            }
+            .into()]
+        } else {
+            self.subscriptions
+                .iter()
+                .map(|sub| {
+                    let sub_id = sub.id.clone();
+                    let is_active = active_id.as_deref() == Some(&sub.id) || sub.is_active;
+                    CheckmarkItem::<Self> {
+                        label: sub.name.clone(),
+                        checked: is_active,
+                        activate: Box::new(move |tray: &mut Self| {
+                            let target_id = sub_id.clone();
+                            tray.active_sub_id = Some(target_id.clone());
+                            let svc = tray.service.clone();
+                            tokio::spawn(async move {
+                                let _ = svc.activate_subscription(&target_id).await;
+                            });
+                        }),
+                        ..Default::default()
+                    }
+                    .into()
+                })
+                .collect()
+        };
+
+        items.push(
+            SubMenu::<Self> {
+                label: crate::i18n::tr("tray_subscriptions").to_string(),
+                submenu: sub_items,
+                ..Default::default()
+            }
+            .into(),
+        );
+
         items.push(MenuItem::Separator);
 
-        // 5. Quit
+        // 6. Quit
         items.push(
             StandardItem::<Self> {
                 label: crate::i18n::tr("tray_quit").to_string(),
@@ -239,11 +302,16 @@ pub async fn start_tray(service: AppService) -> Option<Handle<GihomoTray>> {
         .await
         .unwrap_or_else(|_| "rule".to_string());
 
+    let subscriptions = service.get_subscriptions().await.unwrap_or_default();
+    let active_sub_id = service.get_active_subscription().await.map(|s| s.id);
+
     let tray = GihomoTray {
         proxy_enabled,
         tun_enabled,
         proxy_mode,
         kernel_error: false,
+        subscriptions,
+        active_sub_id,
         service: service.clone(),
     };
 
@@ -251,7 +319,7 @@ pub async fn start_tray(service: AppService) -> Option<Handle<GihomoTray>> {
         Ok(handle) => {
             info!("System tray service registered successfully via D-Bus SNI");
 
-            // Background event sync for Proxy/TUN/Mode/Kernel changes
+            // Background event sync for Proxy/TUN/Mode/Kernel/Subscription changes
             let mut rx = service.event_receiver();
             let handle_clone = handle.clone();
             tokio::spawn(async move {
@@ -284,6 +352,21 @@ pub async fn start_tray(service: AppService) -> Option<Handle<GihomoTray>> {
                             AppEvent::ErrorOccurred(_) => {
                                 let _ = handle_clone.update(|t| t.kernel_error = true).await;
                             }
+                            AppEvent::SubscriptionsChanged(subs) => {
+                                let _ = handle_clone
+                                    .update(|t| {
+                                        t.subscriptions = subs;
+                                    })
+                                    .await;
+                            }
+                            AppEvent::ActiveSubscriptionChanged(sub_opt) => {
+                                let id = sub_opt.map(|s| s.id);
+                                let _ = handle_clone
+                                    .update(|t| {
+                                        t.active_sub_id = id;
+                                    })
+                                    .await;
+                            }
                             _ => {}
                         },
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
@@ -296,13 +379,10 @@ pub async fn start_tray(service: AppService) -> Option<Handle<GihomoTray>> {
             let mut lang_rx = crate::i18n::language_change_receiver();
             let handle_for_lang = handle.clone();
             tokio::spawn(async move {
-                loop {
-                    match lang_rx.recv().await {
-                        Ok(()) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                            let _ = handle_for_lang.update(|_| ()).await;
-                        }
-                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-                    }
+                while let Ok(()) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) =
+                    lang_rx.recv().await
+                {
+                    let _ = handle_for_lang.update(|_| ()).await;
                 }
             });
 

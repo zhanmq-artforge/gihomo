@@ -26,6 +26,16 @@
     <name>ArtForge Team</name>
   </developer>
   <releases>
+    <release version="1.1.0" date="2026-10-02">
+      <description>
+        <p>Feature release: D-Bus single-instance application lifecycle and background daemon stability, navigation sidebar functional tiering with 1px dividers, system tray quick subscription switching submenu, and proxies view full-width toolbar with narrow breakpoint responsive design.</p>
+      </description>
+    </release>
+    <release version="1.0.2" date="2026-10-01">
+      <description>
+        <p>Performance and security release: 127.0.0.1 controller loopback binding, pure Rust kernel discovery, connection list anti-crash pagination, 3000-line kernel log buffer with one-click export, and adaptive subscription dialogs.</p>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-09-30">
       <description>
         <p>Maintenance release: Refactored kernel log console context menu, improved language selection dropdown aesthetics, and fixed Libadwaita Pango markup parsing in Preferences.</p>

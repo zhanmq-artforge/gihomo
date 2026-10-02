@@ -2,8 +2,8 @@ use adw::prelude::*;
 use gihomo_app::AppService;
 use gihomo_core::LogMessage;
 use gtk4::{
-    Button, DropDown, Orientation, ScrolledWindow, SearchEntry, TextBuffer, TextMark,
-    TextView, ToggleButton,
+    Button, DropDown, Orientation, ScrolledWindow, SearchEntry, TextBuffer, TextMark, TextView,
+    ToggleButton,
 };
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
@@ -145,7 +145,10 @@ impl LogsView {
             .name("debug")
             .foreground("#77767b")
             .build();
-        let tag_dim = gtk4::TextTag::builder().name("dim").foreground("#9a9996").build();
+        let tag_dim = gtk4::TextTag::builder()
+            .name("dim")
+            .foreground("#9a9996")
+            .build();
 
         tag_table.add(&tag_info);
         tag_table.add(&tag_warn);
@@ -304,9 +307,12 @@ impl LogsView {
                     ));
                     copy_btn.set_icon_name("object-select-symbolic");
                     let btn_clone = copy_btn.clone();
-                    glib::timeout_add_local_once(std::time::Duration::from_millis(1500), move || {
-                        btn_clone.set_icon_name("edit-copy-symbolic");
-                    });
+                    glib::timeout_add_local_once(
+                        std::time::Duration::from_millis(1500),
+                        move || {
+                            btn_clone.set_icon_name("edit-copy-symbolic");
+                        },
+                    );
                 }
             });
         }
@@ -340,14 +346,16 @@ impl LogsView {
 
                 match std::fs::write(&target_path, text.as_bytes()) {
                     Ok(_) => {
-                        let msg = tr("toast_export_logs_success")
-                            .replace("{filename}", &filename);
+                        let msg = tr("toast_export_logs_success").replace("{filename}", &filename);
                         service.emit_event(gihomo_app::AppEvent::Notification(msg));
                         export_btn.set_icon_name("object-select-symbolic");
                         let btn_clone = export_btn.clone();
-                        glib::timeout_add_local_once(std::time::Duration::from_millis(1500), move || {
-                            btn_clone.set_icon_name("document-save-symbolic");
-                        });
+                        glib::timeout_add_local_once(
+                            std::time::Duration::from_millis(1500),
+                            move || {
+                                btn_clone.set_icon_name("document-save-symbolic");
+                            },
+                        );
                     }
                     Err(err) => {
                         service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(

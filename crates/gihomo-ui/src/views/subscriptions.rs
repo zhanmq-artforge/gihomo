@@ -237,7 +237,8 @@ impl SubscriptionsView {
         self.status_page.set_title(tr("empty_sub_title"));
         self.status_page.set_description(Some(tr("empty_sub_desc")));
         self.auto_update_group.set_title(tr("sub_settings_group"));
-        self.auto_update_row.set_title(tr("sub_auto_update_interval"));
+        self.auto_update_row
+            .set_title(tr("sub_auto_update_interval"));
         let selected = self.auto_update_row.selected();
         let new_model = build_interval_string_list();
         self.is_updating_interval.set(true);
@@ -426,11 +427,8 @@ impl SubscriptionsView {
             actions_box.append(&edit_btn);
 
             // 4. Action: Delete Button (Destructive action at the end)
-            let delete_btn = build_delete_button(
-                self.service.clone(),
-                self.parent_window.clone(),
-                sub,
-            );
+            let delete_btn =
+                build_delete_button(self.service.clone(), self.parent_window.clone(), sub);
             actions_box.append(&delete_btn);
 
             // 5. Spinner for async progress
@@ -441,7 +439,9 @@ impl SubscriptionsView {
             // Sub-row 1: Subscription Address / Source (above traffic info)
             let (source_title, source_val, is_copyable) = match &sub.source {
                 SubscriptionSource::Url(url) => (tr("sub_address_title"), url.clone(), true),
-                SubscriptionSource::LocalFile(path) => (tr("sub_local_file_title"), path.clone(), true),
+                SubscriptionSource::LocalFile(path) => {
+                    (tr("sub_local_file_title"), path.clone(), true)
+                }
                 SubscriptionSource::ShareLinks(raw) => {
                     let count = raw
                         .lines()
@@ -479,9 +479,12 @@ impl SubscriptionsView {
                         clipboard.set_text(&val_to_copy);
                         btn_clone.set_icon_name("object-select-symbolic");
                         let b = btn_clone.clone();
-                        glib::timeout_add_local_once(std::time::Duration::from_millis(1500), move || {
-                            b.set_icon_name("edit-copy-symbolic");
-                        });
+                        glib::timeout_add_local_once(
+                            std::time::Duration::from_millis(1500),
+                            move || {
+                                b.set_icon_name("edit-copy-symbolic");
+                            },
+                        );
                     }
                 });
                 address_row.add_suffix(&copy_btn);

@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-10-02
+
+### 🚀 Architecture, Single-Instance Lifecycle & UI/UX Evolution
+
+#### 🛡️ GTK4 / GIO Single-Instance Application Lifecycle & Daemon Stability
+* **D-Bus Single-Instance Enforcement & Remote Activation**: Integrated native D-Bus application registration (`gio::Application::register`). When secondary instances are launched (e.g. from the desktop launcher or CLI while Gihomo is running in the background), activation is cleanly forwarded to the primary instance without spawning duplicate services, avoiding process conflicts.
+* **Non-Destructive Secondary Instance Exit**: Fixed a critical bug where launching a secondary instance would execute `service.shutdown()` upon exiting and inadvertently terminate the primary instance's running Mihomo kernel. Secondary instances now terminate harmlessly in milliseconds.
+* **Deterministic Background Task & Tray Spawning**: Encapsulated background task startup into `GihomoApplication::start_background_tasks` with idempotency protection. Guarantees that the system tray icon (`ksni`), kernel auto-start, and auto-update scheduler start reliably regardless of registration timing.
+* **Bidirectional Window-to-Tray State Resynchronization**: Implemented `MainWindow::resync_runtime_state()` triggered upon window presentation (`notify::visible` and application activation). When the main window is reopened after closing to the tray and switching subscriptions or proxy modes, the dashboard kernel state, proxy switches, and active subscription profile are immediately re-queried and synchronized.
+* **Kernel Liveness & Config Reload Resilience**: Decoupled WebSocket traffic stream disconnects from kernel status reporting, preventing transient false "Stopped" status during reloads. Added automated fallback to process restart if a hot config reload fails during subscription switching.
+
+#### 🔔 System Tray Quick Subscription Switching
+* **Tray Subscription Submenu**: Added a dedicated "Subscriptions" (`切换订阅`) submenu to the D-Bus StatusNotifierItem (SNI) tray icon menu.
+* **Instant Activation with Live Checkmark**: Dynamically lists all user subscription profiles with a real-time checkmark (`✓`) on the currently active subscription. One-click switching directly from the tray with background configuration merging, kernel reload, proxy refresh, and GNOME notification alerts.
+* **Enhanced Tooltip**: Hovering over the tray icon now displays the active subscription name alongside System Proxy, TUN, and Proxy Mode states.
+
+#### 🧭 Navigation Sidebar Functional Tiering & 1px Dividers
+* **Frequency-Driven Sidebar Organization**: Reordered sidebar menu items based on daily frequency of use and data-flow hierarchy into three clear functional tiers:
+  * **Tier 1 (Core Daily)**: Dashboard $\to$ Proxies $\to$ Subscriptions (moved up from 6th to 3rd for instant profile switching and quota checking).
+  * **Tier 2 (Diagnostics & Inspection)**: Connections $\to$ Rules $\to$ Logs.
+  * **Tier 3 (System & Preferences)**: Settings.
+* **Native 1px Visual Dividers**: Inserted GNOME-standard subtle horizontal separator lines between functional tiers, styled via CSS (`min-height: 1px`, `alpha(currentColor, 0.15)`) to eliminate oversized rectangular placeholders while maintaining smooth keyboard navigation.
+
+#### ⚡ Proxies View Responsive Layout & Controls Modernization
+* **Single-Node Instant Latency Test**: Added a dedicated ping icon button (`network-transmit-receive-symbolic`) before each node's selection button for targeted single-node testing.
+* **Full-Width Dedicated Action Toolbar**: Standardized Search Entry, Ping All (`⚡`), and Refresh (`🔄`) into a dedicated second-row toolbar with `hexpand(true)`, matching the content width and eliminating layout shift when resizing windows.
+* **Breakpoint-Aware Adaptive Header & Node Rows**:
+  * **Group Cards**: At narrow viewports (`max-width: 560px`), the selected node badge and its latency gracefully wrap to a second line directly beneath the group name with 24px text-aligned indentation, eliminating clipping on 360px displays.
+  * **Node Rows**: Type badges and latency pills wrap beneath the node title in narrow viewports.
+* **Decluttered Group Headers**: Removed redundant English badges (`Selector`, `URLTest`, `Fallback`) from card headers, integrating detailed localized descriptions into the group title's tooltip.
+* **Unified Breakpoint Standards**: Standardized content-level responsive breakpoints across Proxies and Rules views to `max-width: 560px`.
+
+#### 📦 Packaging, Metadata & Documentation Alignment
+* Unified version to `1.1.0` across `Cargo.toml`, `Cargo.lock`, Debian packaging (`scripts/package-deb.sh`), and RPM packaging (`packaging/rpm/gihomo.spec`, `scripts/package-rpm.sh`).
+* Aligned core architecture docs (`docs/Gihomo Architecture.md`), coding standards, AppStream metainfo, and project README to accurately reflect all 7 core views, domain models, and storage specifications.
+
 ## [1.0.2] - 2026-10-01
 
 ### ⚡ Architecture, Security, High-Concurrency & UI/UX Evolution

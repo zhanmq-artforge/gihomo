@@ -278,9 +278,21 @@ impl MihomoApiClient {
         let mut rules = Vec::new();
         if let Some(arr) = json.get("rules").and_then(|v| v.as_array()) {
             for item in arr {
-                let rule_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("Match").to_string();
-                let payload = item.get("payload").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let proxy = item.get("proxy").and_then(|v| v.as_str()).unwrap_or("DIRECT").to_string();
+                let rule_type = item
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Match")
+                    .to_string();
+                let payload = item
+                    .get("payload")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let proxy = item
+                    .get("proxy")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("DIRECT")
+                    .to_string();
                 let size = item.get("size").and_then(|v| v.as_i64());
                 rules.push(gihomo_core::RuleItem {
                     rule_type,
@@ -307,10 +319,21 @@ impl MihomoApiClient {
         let mut providers = Vec::new();
         if let Some(map) = json.get("providers").and_then(|v| v.as_object()) {
             for (name, item) in map {
-                let p_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("Rule").to_string();
-                let vehicle = item.get("vehicleType").and_then(|v| v.as_str()).unwrap_or("HTTP").to_string();
+                let p_type = item
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Rule")
+                    .to_string();
+                let vehicle = item
+                    .get("vehicleType")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("HTTP")
+                    .to_string();
                 let count = item.get("ruleCount").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
-                let updated = item.get("updatedAt").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let updated = item
+                    .get("updatedAt")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
                 providers.push(gihomo_core::RuleProvider {
                     name: name.clone(),
                     provider_type: p_type,
@@ -325,7 +348,11 @@ impl MihomoApiClient {
 
     /// Trigger rule provider update
     pub async fn update_rule_provider(&self, name: &str) -> Result<(), InfraError> {
-        let url = format!("{}/providers/rules/{}", self.base_url, urlencoding_encode(name));
+        let url = format!(
+            "{}/providers/rules/{}",
+            self.base_url,
+            urlencoding_encode(name)
+        );
         let resp = self.client.put(&url).send().await?;
         if !resp.status().is_success() {
             return Err(InfraError::ApiError {
