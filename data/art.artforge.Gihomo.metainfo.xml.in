@@ -25,6 +25,9 @@
   <developer id="art.artforge">
     <name>ArtForge Team</name>
   </developer>
+  <url type="homepage">https://github.com/zhanmq-artforge/gihomo</url>
+  <url type="bugtracker">https://github.com/zhanmq-artforge/gihomo/issues</url>
+  <content_rating type="oars-1.1" />
   <releases>
     <release version="1.1.0" date="2026-10-02">
       <description>

@@ -1,0 +1,83 @@
+name: "Bug Report / 缺陷报告"
+description: "Report a bug or unexpected behavior in Gihomo / 报告程序错误或异常"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交 Bug 反馈！在提交前，请确保您使用的是最新版本的 Gihomo，并在已有 Issues 中检索是否有人提出过相同问题。
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: "Linux Distribution / 发行版"
+      options:
+        - "Ubuntu (24.04 / 22.04)"
+        - "Debian (12 Bookworm / Testing)"
+        - "Arch Linux / Manjaro"
+        - "Fedora (40 / 39)"
+        - "openSUSE"
+        - "Other (请在下方补充)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: desktop
+    attributes:
+      label: "Desktop Environment / 桌面环境"
+      options:
+        - "GNOME (Wayland)"
+        - "GNOME (X11)"
+        - "KDE Plasma (Wayland)"
+        - "KDE Plasma (X11)"
+        - "XFCE / Other"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: "Gihomo Version / 版本号"
+      placeholder: "e.g. 1.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package_format
+    attributes:
+      label: "Installation Package / 安装包类型"
+      options:
+        - ".deb (Debian/Ubuntu)"
+        - ".rpm (Fedora/RHEL)"
+        - ".pkg.tar.zst (Arch/AUR)"
+        - ".AppImage"
+        - ".tar.gz (Manual install)"
+        - "Built from source (cargo build)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Problem Description / 详细问题描述"
+      description: "清晰描述发生的异常现象以及你期望的行为"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: "Steps to Reproduce / 复现步骤"
+      placeholder: |
+        1. 打开 Gihomo
+        2. 点击 ...
+        3. 观察到 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs & Console Output / 日志与终端报错"
+      description: "可通过在终端运行 `RUST_LOG=debug gihomo` 获取详细排查日志"
+      render: shell

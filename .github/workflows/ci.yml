@@ -1,0 +1,67 @@
+name: CI Quality Gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-and-test:
+    name: Code Quality & Test Suite
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libadwaita-1-dev \
+            libglib2.0-dev \
+            libssl-dev \
+            libpolkit-gobject-1-dev \
+            libcap2-bin \
+            desktop-file-utils \
+            appstream
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Code Formatting Check (cargo fmt)
+        run: cargo fmt -- --check
+
+      - name: Cargo Check
+        run: cargo check --workspace --all-targets
+
+      - name: Static Analysis & Lints (cargo clippy)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run Workspace Unit Tests
+        run: cargo test --workspace -- --nocapture
+
+      - name: Validate GSettings Schema
+        run: glib-compile-schemas --strict --dry-run data/
+
+      - name: Validate Desktop Entry File
+        run: |
+          sed -e "s|Icon=art.artforge.Gihomo|Icon=art.artforge.Gihomo|g" \
+            data/art.artforge.Gihomo.desktop.in > /tmp/art.artforge.Gihomo.desktop
+          desktop-file-validate /tmp/art.artforge.Gihomo.desktop
+
+      - name: Validate AppStream Metadata
+        run: appstreamcli validate --no-net data/art.artforge.Gihomo.metainfo.xml.in

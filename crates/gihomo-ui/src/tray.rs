@@ -132,7 +132,9 @@ impl Tray for GihomoTray {
                                 if let Some(win) = gtk_app.windows().first() {
                                     win.set_visible(true);
                                     win.present();
-                                    if let Some(main_win) = win.downcast_ref::<crate::window::MainWindow>() {
+                                    if let Some(main_win) =
+                                        win.downcast_ref::<crate::window::MainWindow>()
+                                    {
                                         main_win.resync_runtime_state();
                                     }
                                     return;

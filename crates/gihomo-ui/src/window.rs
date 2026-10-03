@@ -159,10 +159,9 @@ impl MainWindow {
 
     pub fn resync_runtime_state(&self) {
         let imp = self.imp();
-        if let (Some(db), Some(service)) = (
-            imp.dashboard.borrow().clone(),
-            imp.service.borrow().clone(),
-        ) {
+        if let (Some(db), Some(service)) =
+            (imp.dashboard.borrow().clone(), imp.service.borrow().clone())
+        {
             glib::MainContext::default().spawn_local(async move {
                 if let Ok(status) = service.check_kernel_status().await {
                     db.update_kernel_status(&status);

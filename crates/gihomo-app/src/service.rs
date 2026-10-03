@@ -744,7 +744,8 @@ impl AppService {
             let config_path_str = config_path.to_str().unwrap_or("config.yaml");
             if let Err(e) = self.api.reload_config(config_path_str, true).await {
                 warn!("Mihomo API reload failed: {}, falling back to restart", e);
-                let _ = KernelManager::restart(&self.storage, self.controller_port, &self.secret).await;
+                let _ =
+                    KernelManager::restart(&self.storage, self.controller_port, &self.secret).await;
             }
             let _ = self.fetch_proxies().await;
             self.emit_event(AppEvent::KernelStatusChanged(KernelStatus::Running));

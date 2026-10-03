@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability Reporting
+    url: https://github.com/zhanmq-artforge/gihomo/security/advisories/new
+    about: Please report security vulnerabilities privately here.
+  - name: General Discussions & Questions
+    url: https://github.com/zhanmq-artforge/gihomo/discussions
+    about: Ask questions or share setup tips with the community.

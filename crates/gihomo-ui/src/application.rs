@@ -184,7 +184,9 @@ impl GihomoApplication {
                         }
                     }
                 } else {
-                    info!("Auto-start: No active subscription or config found; skipping auto-start");
+                    info!(
+                        "Auto-start: No active subscription or config found; skipping auto-start"
+                    );
                 }
             }
         });

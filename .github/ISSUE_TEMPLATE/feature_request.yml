@@ -1,0 +1,45 @@
+name: "Feature Request / 功能建议"
+description: "Suggest a new feature or improvement for Gihomo / 提出新功能建议或优化点"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢为 Gihomo 提供功能建议！清晰的背景与使用场景有助于我们评估与设计新特性。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "User Problem / 背景与痛点"
+      description: "你在何种场景下遇到了什么困难或不便？"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Proposed Solution / 建议的方案"
+      description: "你期望 Gihomo 提供怎样的交互或功能来解决该问题？"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternative Solutions / 备选方案或参考实现"
+      description: "是否有其他客户端（如 Clash Verge, Clash Nyanpasu, Clash for Windows）的优秀实现可供参考？"
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: "Related Component / 涉及的模块"
+      options:
+        - "Dashboard (仪表盘与流量速率)"
+        - "Proxies (节点与策略组选择)"
+        - "Subscriptions (订阅管理与解析)"
+        - "Connections (连接监控与阻断)"
+        - "Rules (分流规则与匹配)"
+        - "Logs (内核日志控制台)"
+        - "System Tray (状态栏托盘交互)"
+        - "Settings (首选项与系统代理集成)"
+        - "Packaging & CLI (打包与系统服务)"
