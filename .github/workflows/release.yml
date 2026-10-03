@@ -106,7 +106,7 @@ jobs:
           ls -la
 
       - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           draft: ${{ github.event.inputs.draft || false }}
