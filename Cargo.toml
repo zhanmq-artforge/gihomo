@@ -44,7 +44,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
-base64 = "0.22"
+base64 = "0.23"
 url = "2.5"
 
 # System & Utilities
