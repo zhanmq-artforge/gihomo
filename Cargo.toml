@@ -26,7 +26,7 @@ gihomo-ui = { path = "crates/gihomo-ui" }
 gtk4 = { version = "0.9", package = "gtk4", features = ["v4_12"] }
 adw = { version = "0.7", package = "libadwaita", features = ["v1_5"] }
 libadwaita = { version = "0.7", package = "libadwaita", features = ["v1_5"] }
-glib = "0.20"
+glib = "0.22"
 gio = "0.20"
 gdk4 = "0.9"
 
