@@ -23,7 +23,7 @@
   </description>
   <launchable type="desktop-id">art.artforge.Gihomo.desktop</launchable>
   <developer id="art.artforge">
-    <name>ArtForge Team</name>
+    <name>zhanmq</name>
   </developer>
   <url type="homepage">https://github.com/zhanmq-artforge/gihomo</url>
   <url type="bugtracker">https://github.com/zhanmq-artforge/gihomo/issues</url>

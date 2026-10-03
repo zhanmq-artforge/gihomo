@@ -11,9 +11,9 @@ members = [
 [workspace.package]
 version = "1.1.0"
 edition = "2021"
-authors = ["ArtForge Team <team@artforge.org>"]
+authors = ["zhanmq <zhanmq.china@gmail.com>"]
 license = "GPL-3.0-or-later"
-repository = "https://github.com/artforge/gihomo"
+repository = "https://github.com/zhanmq-artforge/gihomo"
 
 [workspace.dependencies]
 # Internal workspace crates
@@ -78,8 +78,8 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [package.metadata.deb]
-maintainer = "ArtForge Team <team@artforge.org>"
-copyright = "2026 ArtForge Team"
+maintainer = "zhanmq <zhanmq.china@gmail.com>"
+copyright = "2026 zhanmq"
 license-file = ["LICENSE", "4"]
 depends = "libc6, libgtk-4-1, libadwaita-1-0, libglib2.0-0, libcap2-bin"
 section = "net"

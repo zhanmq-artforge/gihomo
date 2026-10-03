@@ -20,7 +20,7 @@ Instead, please report security concerns via one of the following private channe
 1. **GitHub Private Vulnerability Reporting** (Preferred):
    Submit a private advisory via the **Security** tab of this repository.
 2. **Email**:
-   Send an email directly to `security@artforge.org` with:
+   Send an email directly to `zhanmq.china@gmail.com` with:
    - Type of issue (e.g. privilege escalation, secret leak, memory safety).
    - Step-by-step instructions to reproduce the vulnerability.
    - Proof-of-concept (PoC) code or configuration, if applicable.

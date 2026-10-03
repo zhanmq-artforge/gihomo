@@ -64,7 +64,8 @@ sudo pacman -Syu --needed \
 
 1. **Fork and Clone**:
    ```bash
-   git clone https://github.com/your-username/gihomo.git
+   # Fork on GitHub, then clone your fork (or clone upstream directly):
+   git clone https://github.com/zhanmq-artforge/gihomo.git
    cd gihomo
    git checkout -b feature/your-feature-name
    ```

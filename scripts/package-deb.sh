@@ -96,9 +96,9 @@ Section: net
 Priority: optional
 Architecture: ${PKG_ARCH}
 Installed-Size: ${INSTALLED_SIZE}
-Maintainer: ArtForge Team <team@artforge.org>
+Maintainer: zhanmq <zhanmq.china@gmail.com>
 Depends: libc6, libgtk-4-1, libadwaita-1-0, libglib2.0-0, libcap2-bin
-Homepage: https://github.com/artforge/gihomo
+Homepage: https://github.com/zhanmq-artforge/gihomo
 Description: Modern native GTK4 + Libadwaita management client for Mihomo
  Gihomo is a modern native desktop client for Mihomo (Clash.Meta)
  running directly on Linux and GNOME environments.

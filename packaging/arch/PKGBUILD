@@ -1,10 +1,10 @@
-# Maintainer: ArtForge Team <team@artforge.org>
+# Maintainer: zhanmq <zhanmq.china@gmail.com>
 pkgname=gihomo-bin
 pkgver=1.1.0
 pkgrel=1
 pkgdesc="Modern native GTK4 + Libadwaita management client for Mihomo"
 arch=('x86_64' 'aarch64')
-url="https://github.com/artforge/gihomo"
+url="https://github.com/zhanmq-artforge/gihomo"
 license=('GPL-3.0-or-later')
 depends=('gtk4' 'libadwaita' 'glib2' 'libcap')
 optdepends=('polkit: for TUN mode permissions and systemd-resolved integration')

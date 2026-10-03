@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 
 License:        GPL-3.0-or-later
-URL:            https://github.com/artforge/gihomo
+URL:            https://github.com/zhanmq-artforge/gihomo
 Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  rust >= 1.75
@@ -76,7 +76,7 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/polkit-1/rules.d/art.artforge.Gihomo.rules
 
 %changelog
-* Fri Oct 02 2026 ArtForge Team <team@artforge.org> - 1.1.0-1
+* Fri Oct 02 2026 zhanmq <zhanmq.china@gmail.com> - 1.1.0-1
 - Single-instance D-Bus lifecycle, background daemon daemonization, and tray state resync
 - Frequency-tiered sidebar navigation with GNOME HIG 1px separators
 - System tray quick subscription switching submenu with live checkmark
@@ -84,22 +84,22 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 - Granular single-node latency test buttons
 
 
-* Tue Sep 29 2026 ArtForge Team <team@artforge.org> - 0.4.2-1
+* Tue Sep 29 2026 zhanmq <zhanmq.china@gmail.com> - 0.4.2-1
 - Bind the Mihomo controller to loopback and persist a private random secret
 - Isolate system proxy settings and preference writes from the GTK main loop
 - Tighten application service boundaries and use typed application errors
 
-* Sun Sep 27 2026 ArtForge Team <team@artforge.org> - 0.3.0-1
+* Sun Sep 27 2026 zhanmq <zhanmq.china@gmail.com> - 0.3.0-1
 - Native D-Bus StatusNotifierItem (SNI) system tray integration (ksni)
 - Comprehensive tray context menu: Open Dashboard, System Proxy toggle, TUN toggle, Proxy Mode switch, Quit
 - Close-to-tray background daemon behavior with GLib hold guard
 - Autostart at system login configuration with --minimized launch argument
 - General settings tab for background behavior customization
 
-* Sun Sep 27 2026 ArtForge Team <team@artforge.org> - 0.2.0-1
+* Sun Sep 27 2026 zhanmq <zhanmq.china@gmail.com> - 0.2.0-1
 - Ubuntu Settings / Libadwaita adaptive split view navigation (AdwNavigationSplitView)
 - Interactive loading spinners and sensitive feedback across kernel, proxies, and subscriptions
 - Zero clippy warnings, complete bilingual localization hot-reload
 
-* Sun Sep 27 2026 ArtForge Team <team@artforge.org> - 0.1.0-1
+* Sun Sep 27 2026 zhanmq <zhanmq.china@gmail.com> - 0.1.0-1
 - Initial release of Gihomo v0.1.0 (Native Mihomo management client)
