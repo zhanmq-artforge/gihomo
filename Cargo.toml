@@ -48,7 +48,7 @@ base64 = "0.22"
 url = "2.5"
 
 # System & Utilities
-dirs = "5.0"
+dirs = "7.0"
 uuid = { version = "1.10", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 tracing = "0.1"
