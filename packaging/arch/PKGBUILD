@@ -1,0 +1,35 @@
+# Maintainer: ArtForge Team <team@artforge.org>
+pkgname=gihomo-bin
+pkgver=1.1.0
+pkgrel=1
+pkgdesc="Modern native GTK4 + Libadwaita management client for Mihomo"
+arch=('x86_64' 'aarch64')
+url="https://github.com/artforge/gihomo"
+license=('GPL-3.0-or-later')
+depends=('gtk4' 'libadwaita' 'glib2' 'libcap')
+optdepends=('polkit: for TUN mode permissions and systemd-resolved integration')
+provides=('gihomo')
+conflicts=('gihomo')
+
+package() {
+    install -d "${pkgdir}/usr/bin"
+    install -m 755 "${srcdir}/../../target/release/gihomo" "${pkgdir}/usr/bin/gihomo"
+
+    install -d "${pkgdir}/usr/lib/gihomo/bin"
+    install -m 755 "${srcdir}/../../assets/mihomo" "${pkgdir}/usr/lib/gihomo/bin/mihomo"
+
+    install -d "${pkgdir}/usr/share/applications"
+    install -m 644 "${srcdir}/../../data/art.artforge.Gihomo.desktop.in" "${pkgdir}/usr/share/applications/art.artforge.Gihomo.desktop"
+
+    install -d "${pkgdir}/usr/share/icons/hicolor/scalable/apps"
+    install -m 644 "${srcdir}"/../../data/icons/hicolor/scalable/apps/art.artforge.Gihomo*.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/"
+
+    install -d "${pkgdir}/usr/share/glib-2.0/schemas"
+    install -m 644 "${srcdir}/../../data/art.artforge.Gihomo.gschema.xml" "${pkgdir}/usr/share/glib-2.0/schemas/art.artforge.Gihomo.gschema.xml"
+
+    install -d "${pkgdir}/usr/share/metainfo"
+    install -m 644 "${srcdir}/../../data/art.artforge.Gihomo.metainfo.xml.in" "${pkgdir}/usr/share/metainfo/art.artforge.Gihomo.metainfo.xml"
+
+    install -d "${pkgdir}/usr/share/polkit-1/rules.d"
+    install -m 644 "${srcdir}/../../data/art.artforge.Gihomo.rules" "${pkgdir}/usr/share/polkit-1/rules.d/art.artforge.Gihomo.rules"
+}

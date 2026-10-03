@@ -14,34 +14,61 @@ OUTPUT_DIR="${PROJECT_ROOT}/dist"
 RPMBUILD_DIR="${PROJECT_ROOT}/target/rpmbuild"
 SPEC_FILE="${PROJECT_ROOT}/packaging/rpm/gihomo.spec"
 
+RAW_ARCH="${1:-${RPM_ARCH:-$(uname -m)}}"
+case "${RAW_ARCH}" in
+    x86_64|amd64)
+        RPM_ARCH="x86_64"
+        NORM_ARCH="amd64"
+        ;;
+    aarch64|arm64|armv8*)
+        RPM_ARCH="aarch64"
+        NORM_ARCH="arm64"
+        ;;
+    *)
+        RPM_ARCH="${RAW_ARCH}"
+        NORM_ARCH="${RAW_ARCH}"
+        ;;
+esac
+
 mkdir -p "${OUTPUT_DIR}"
 
-if ! command -v rpmbuild &>/dev/null; then
-    echo "==> ⚠️  'rpmbuild' not found on this system."
-    echo "    On Ubuntu/Debian, install with:  sudo apt install -y rpm"
-    echo "    On Fedora/RHEL, install with:   sudo dnf install -y rpm-build"
-    echo "    Or you can build via 'cargo-generate-rpm' (pure Rust, no rpmbuild needed):"
-    echo "      cargo install cargo-generate-rpm"
-    echo "      cargo generate-rpm"
+if [ ! -f "target/release/gihomo" ]; then
+    echo "==> 1. Building release binary (cargo build --release)..."
+    cargo build --release
+else
+    echo "==> 1. Release binary target/release/gihomo already present, skipping cargo build."
+fi
+
+echo "==> 1.1 Ensuring Mihomo kernel for ${NORM_ARCH}..."
+"${PROJECT_ROOT}/scripts/ensure-mihomo.sh" "${NORM_ARCH}"
+
+if command -v rpmbuild &>/dev/null; then
+    echo "==> 2. Preparing rpmbuild workspace in ${RPMBUILD_DIR}..."
+    rm -rf "${RPMBUILD_DIR}"
+    mkdir -p "${RPMBUILD_DIR}"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+    cp "${SPEC_FILE}" "${RPMBUILD_DIR}/SPECS/"
+
+    echo "==> 3. Running rpmbuild for ${RPM_ARCH}..."
+    rpmbuild --define "_topdir ${RPMBUILD_DIR}" \
+             --define "_builddir ${PROJECT_ROOT}" \
+             --target "${RPM_ARCH}" \
+             -bb "${RPMBUILD_DIR}/SPECS/gihomo.spec"
+
+    echo "==> 4. Copying generated RPM to dist/..."
+    find "${RPMBUILD_DIR}/RPMS" -name "*.rpm" -exec cp {} "${OUTPUT_DIR}/" \;
+elif command -v cargo-generate-rpm &>/dev/null; then
+    echo "==> 2. Using cargo-generate-rpm to build RPM package..."
+    cargo generate-rpm --target-arch "${RPM_ARCH}"
+    find "target/generate-rpm" -name "*.rpm" -exec cp {} "${OUTPUT_DIR}/" \;
+else
+    echo "==> ⚠️  Neither 'rpmbuild' nor 'cargo-generate-rpm' found."
+    echo "    On Ubuntu/Debian:  sudo apt install -y rpm"
+    echo "    On Fedora/RHEL:    sudo dnf install -y rpm-build"
+    echo "    Or install cargo-generate-rpm: cargo install cargo-generate-rpm"
     exit 1
 fi
 
-echo "==> 1. Building release binary (cargo build --release)..."
-cargo build --release
-
-echo "==> 2. Preparing rpmbuild workspace in ${RPMBUILD_DIR}..."
-rm -rf "${RPMBUILD_DIR}"
-mkdir -p "${RPMBUILD_DIR}"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-
-cp "${SPEC_FILE}" "${RPMBUILD_DIR}/SPECS/"
-
-echo "==> 3. Running rpmbuild..."
-rpmbuild --define "_topdir ${RPMBUILD_DIR}" \
-         --define "_builddir ${PROJECT_ROOT}" \
-         -bb "${RPMBUILD_DIR}/SPECS/gihomo.spec"
-
-echo "==> 4. Copying generated RPM to dist/..."
-find "${RPMBUILD_DIR}/RPMS" -name "*.rpm" -exec cp {} "${OUTPUT_DIR}/" \;
-
 echo "==> ✅ RPM package successfully created in: ${OUTPUT_DIR}"
 ls -la "${OUTPUT_DIR}"/*.rpm
+

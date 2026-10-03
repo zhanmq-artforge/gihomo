@@ -11,14 +11,32 @@ cd "$PROJECT_ROOT"
 APP_ID="art.artforge.Gihomo"
 PKG_NAME="gihomo"
 PKG_VERSION="1.1.0"
-PKG_ARCH="amd64"
+
+# Architecture detection: argument > environment variable > dpkg > uname
+RAW_ARCH="${1:-${PKG_ARCH:-$(dpkg --print-architecture 2>/dev/null || uname -m)}}"
+case "${RAW_ARCH}" in
+    x86_64|amd64)
+        PKG_ARCH="amd64"
+        ;;
+    aarch64|arm64|armv8*)
+        PKG_ARCH="arm64"
+        ;;
+    *)
+        PKG_ARCH="${RAW_ARCH}"
+        ;;
+esac
+
 OUTPUT_DIR="${PROJECT_ROOT}/dist"
 DEB_DIR="target/debian/${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}"
 OUTPUT_DEB="${OUTPUT_DIR}/${PKG_NAME}_${PKG_VERSION}_${PKG_ARCH}.deb"
 mkdir -p "${OUTPUT_DIR}"
 
-echo "==> 1. Building release binary (cargo build --release)..."
-cargo build --release
+if [ ! -f "target/release/gihomo" ]; then
+    echo "==> 1. Building release binary (cargo build --release)..."
+    cargo build --release
+else
+    echo "==> 1. Release binary target/release/gihomo already present, skipping cargo build."
+fi
 
 echo "==> 2. Preparing packaging directory structure in ${DEB_DIR}..."
 rm -rf "${DEB_DIR}"
@@ -35,25 +53,9 @@ cp "target/release/gihomo" "${DEB_DIR}/usr/bin/gihomo"
 chmod 755 "${DEB_DIR}/usr/bin/gihomo"
 
 echo "==> 3.1 Bundling native Mihomo kernel into /usr/lib/gihomo/bin/mihomo..."
+"${PROJECT_ROOT}/scripts/ensure-mihomo.sh" "${PKG_ARCH}"
 KERNEL_DEST="${DEB_DIR}/usr/lib/gihomo/bin/mihomo"
-if [ -f "${PROJECT_ROOT}/assets/mihomo" ]; then
-    echo "    Using cached Mihomo kernel from ${PROJECT_ROOT}/assets/mihomo"
-    cp "${PROJECT_ROOT}/assets/mihomo" "${KERNEL_DEST}"
-elif [ -f "${HOME}/.local/share/art.artforge.Gihomo/bin/mihomo" ]; then
-    echo "    Using Mihomo kernel from user directory"
-    cp "${HOME}/.local/share/art.artforge.Gihomo/bin/mihomo" "${KERNEL_DEST}"
-elif [ -f "/usr/lib/gihomo/bin/mihomo" ]; then
-    echo "    Using system installed Mihomo kernel"
-    cp "/usr/lib/gihomo/bin/mihomo" "${KERNEL_DEST}"
-else
-    echo "    Downloading official Mihomo kernel..."
-    MIHOMO_VER="v1.19.31"
-    TMP_GZ=$(mktemp)
-    curl -fsSL -o "${TMP_GZ}" "https://github.com/MetaCubeX/mihomo/releases/download/${MIHOMO_VER}/mihomo-linux-amd64-${MIHOMO_VER}.gz" || \
-    curl -fsSL -o "${TMP_GZ}" "https://ghproxy.net/https://github.com/MetaCubeX/mihomo/releases/download/${MIHOMO_VER}/mihomo-linux-amd64-${MIHOMO_VER}.gz"
-    gzip -d -c "${TMP_GZ}" > "${KERNEL_DEST}"
-    rm -f "${TMP_GZ}"
-fi
+cp "${PROJECT_ROOT}/assets/mihomo" "${KERNEL_DEST}"
 chmod 755 "${KERNEL_DEST}"
 
 # Desktop file
