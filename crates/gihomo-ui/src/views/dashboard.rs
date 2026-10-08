@@ -27,7 +27,8 @@ pub struct DashboardView {
     download_total_label: Label,
     active_sub_group: adw::PreferencesGroup,
     active_sub_row: adw::ActionRow,
-    active_sub_label: Label,
+    btn_refresh_sub: Button,
+    sub_refresh_spinner: gtk4::Spinner,
     sub_dropdown: gtk4::DropDown,
     package_traffic_row: adw::ActionRow,
     package_pbar: ProgressBar,
@@ -59,7 +60,7 @@ impl DashboardView {
         // Group 1: Quick Controls
         let control_group = adw::PreferencesGroup::builder()
             .title(tr("ctrl_group_title"))
-            .description(tr("ctrl_group_desc"))
+            .tooltip_text(tr("ctrl_group_desc"))
             .build();
 
         // System Proxy Switch
@@ -137,7 +138,7 @@ impl DashboardView {
         // Group 2: Traffic Stats
         let stats_group = adw::PreferencesGroup::builder()
             .title(tr("traffic_title"))
-            .description(tr("traffic_desc"))
+            .tooltip_text(tr("traffic_desc"))
             .build();
 
         let stats_row = adw::ActionRow::builder().build();
@@ -194,7 +195,7 @@ impl DashboardView {
         // Group 3: Active Subscription & Quick Switch
         let active_sub_group = adw::PreferencesGroup::builder()
             .title(tr("active_sub_title"))
-            .description(tr("active_sub_desc"))
+            .tooltip_text(tr("active_sub_desc"))
             .build();
 
         let active_sub_row = adw::ActionRow::builder()
@@ -204,17 +205,25 @@ impl DashboardView {
             .subtitle_lines(1)
             .build();
 
-        let active_sub_label = Label::builder()
-            .label(tr("not_active"))
-            .css_classes(["pill", "caption", "dim-label"])
+        let sub_refresh_spinner = gtk4::Spinner::builder()
             .valign(gtk4::Align::Center)
+            .visible(false)
+            .build();
+
+        let btn_refresh_sub = Button::builder()
+            .icon_name("view-refresh-symbolic")
+            .tooltip_text(tr("tooltip_refresh_sub"))
+            .valign(gtk4::Align::Center)
+            .css_classes(["flat", "circular"])
+            .sensitive(false)
             .build();
 
         let sub_dropdown = gtk4::DropDown::builder()
             .valign(gtk4::Align::Center)
             .build();
 
-        active_sub_row.add_suffix(&active_sub_label);
+        active_sub_row.add_suffix(&sub_refresh_spinner);
+        active_sub_row.add_suffix(&btn_refresh_sub);
         active_sub_row.add_suffix(&sub_dropdown);
 
         let package_traffic_row = adw::ActionRow::builder()
@@ -261,7 +270,7 @@ impl DashboardView {
         let is_updating_proxy = Rc::new(Cell::new(false));
         let is_updating_tun = Rc::new(Cell::new(false));
         let current_status = Rc::new(RefCell::new(KernelStatus::NotFound));
-        let current_active_sub = Rc::new(RefCell::new(None));
+        let current_active_sub: Rc<RefCell<Option<Subscription>>> = Rc::new(RefCell::new(None));
 
         // Wire Interactions: Proxy
         {
@@ -375,7 +384,7 @@ impl DashboardView {
 
         // Wire Interactions: Dropdown Subscription Switch
         {
-            let service = service;
+            let service = service.clone();
             let subs_cache = subs_cache.clone();
             let is_updating = is_updating_dropdown.clone();
 
@@ -393,6 +402,44 @@ impl DashboardView {
                             let _ = service.activate_subscription(&sub_id).await;
                         });
                     }
+                }
+            });
+        }
+
+        // Wire Interactions: Refresh Active Subscription
+        {
+            let service = service.clone();
+            let current_active_sub = current_active_sub.clone();
+            let btn_refresh = btn_refresh_sub.clone();
+            let spinner = sub_refresh_spinner.clone();
+            let dropdown = sub_dropdown.clone();
+
+            btn_refresh_sub.connect_clicked(move |_| {
+                let sub_opt = current_active_sub.borrow().clone();
+                if let Some(sub) = sub_opt {
+                    btn_refresh.set_sensitive(false);
+                    dropdown.set_sensitive(false);
+                    spinner.set_visible(true);
+                    spinner.start();
+
+                    let service = service.clone();
+                    let btn_refresh = btn_refresh.clone();
+                    let dropdown = dropdown.clone();
+                    let spinner = spinner.clone();
+                    let sub_id = sub.id.clone();
+                    glib::MainContext::default().spawn_local(async move {
+                        if let Err(err) = service.update_subscription(&sub_id).await {
+                            service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
+                                "{}: {}",
+                                tr("toast_sub_failed"),
+                                err
+                            )));
+                        }
+                        spinner.stop();
+                        spinner.set_visible(false);
+                        btn_refresh.set_sensitive(true);
+                        dropdown.set_sensitive(true);
+                    });
                 }
             });
         }
@@ -417,7 +464,8 @@ impl DashboardView {
             download_total_label,
             active_sub_group,
             active_sub_row,
-            active_sub_label,
+            btn_refresh_sub,
+            sub_refresh_spinner,
             sub_dropdown,
             package_traffic_row,
             package_pbar,
@@ -434,8 +482,9 @@ impl DashboardView {
     pub fn update_ui_text(&self) {
         self.page.set_title(tr("tab_dashboard"));
         self.control_group.set_title(tr("ctrl_group_title"));
+        self.control_group.set_description(None);
         self.control_group
-            .set_description(Some(tr("ctrl_group_desc")));
+            .set_tooltip_text(Some(tr("ctrl_group_desc")));
         self.proxy_switch.set_title(tr("sys_proxy_title"));
         self.proxy_switch.set_subtitle(tr("sys_proxy_sub"));
         self.tun_switch.set_title(tr("tun_title"));
@@ -449,14 +498,18 @@ impl DashboardView {
             .set_tooltip_text(Some(tr("btn_stop_kernel_tooltip")));
 
         self.stats_group.set_title(tr("traffic_title"));
-        self.stats_group.set_description(Some(tr("traffic_desc")));
+        self.stats_group.set_description(None);
+        self.stats_group.set_tooltip_text(Some(tr("traffic_desc")));
         self.up_title.set_label(tr("realtime_up"));
         self.down_title.set_label(tr("realtime_down"));
 
         self.active_sub_group.set_title(tr("active_sub_title"));
+        self.active_sub_group.set_description(None);
         self.active_sub_group
-            .set_description(Some(tr("active_sub_desc")));
+            .set_tooltip_text(Some(tr("active_sub_desc")));
         self.active_sub_row.set_title(tr("active_sub_row"));
+        self.btn_refresh_sub
+            .set_tooltip_text(Some(tr("tooltip_refresh_sub")));
         self.package_traffic_row
             .set_title(tr("package_traffic_title"));
 
@@ -579,13 +632,25 @@ impl DashboardView {
 
     pub fn update_active_subscription(&self, sub_opt: Option<&Subscription>) {
         *self.current_active_sub.borrow_mut() = sub_opt.cloned();
+        self.sub_refresh_spinner.stop();
+        self.sub_refresh_spinner.set_visible(false);
 
         if let Some(sub) = sub_opt {
-            self.active_sub_label.set_label(&format!("✓ {}", sub.name));
-            self.active_sub_label
-                .set_css_classes(&["pill", "caption", "success"]);
-            self.active_sub_row
-                .set_subtitle(&format!("{}{}", tr("current_using"), sub.name));
+            self.btn_refresh_sub.set_sensitive(true);
+
+            let updated_time_str = sub
+                .updated_at
+                .map(|t| {
+                    t.with_timezone(&chrono::Local)
+                        .format("%Y-%m-%d %H:%M:%S")
+                        .to_string()
+                })
+                .unwrap_or_else(|| tr("sub_never_updated").to_string());
+            self.active_sub_row.set_subtitle(&format!(
+                "{}: {}",
+                tr("sub_updated_time"),
+                updated_time_str
+            ));
 
             // Select in dropdown without triggering listener
             let subs = self.subs_cache.borrow();
@@ -609,10 +674,8 @@ impl DashboardView {
                 self.package_traffic_row.set_visible(false);
             }
         } else {
-            self.active_sub_label.set_label(tr("not_active"));
-            self.active_sub_label
-                .set_css_classes(&["pill", "caption", "dim-label"]);
-            self.active_sub_row.set_subtitle(tr("select_sub_hint"));
+            self.btn_refresh_sub.set_sensitive(false);
+            self.active_sub_row.set_subtitle(tr("no_active_sub"));
             self.package_traffic_row.set_visible(false);
         }
     }

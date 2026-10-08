@@ -1,5 +1,5 @@
 Name:           gihomo
-Version:        1.1.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 
@@ -76,6 +76,12 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/polkit-1/rules.d/art.artforge.Gihomo.rules
 
 %changelog
+* Thu Oct 08 2026 zhanmq <zhanmq.china@gmail.com> - 1.1.1-1
+- Icon button for proxy node selection in proxies view
+- Tooltip-based secondary description for dashboard preference groups
+- Last updated timestamp for active subscription on dashboard
+- One-click active subscription refresh button on dashboard with spinner
+
 * Fri Oct 02 2026 zhanmq <zhanmq.china@gmail.com> - 1.1.0-1
 - Single-instance D-Bus lifecycle, background daemon daemonization, and tray state resync
 - Frequency-tiered sidebar navigation with GNOME HIG 1px separators

@@ -10,7 +10,7 @@ cd "$PROJECT_ROOT"
 
 APP_ID="art.artforge.Gihomo"
 PKG_NAME="gihomo"
-PKG_VERSION="1.1.0"
+PKG_VERSION="${PKG_VERSION:-$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)}"
 
 RAW_ARCH="${1:-${TARGET_ARCH:-$(uname -m)}}"
 case "${RAW_ARCH}" in

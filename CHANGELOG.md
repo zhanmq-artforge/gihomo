@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-10-08
+
+### 🎨 UI Refinement & Dashboard Ergonomics
+
+#### ⚡ Proxies View Node Selection
+* **Icon-Based Node Selection**: Replaced the text button ("Select" / `btn_select`) with a compact, native Libadwaita circular icon button (`object-select-symbolic`, `["flat", "circular"]`). Unified the action button visual geometry with the single-node latency test button and added hover tooltip feedback.
+
+#### 📊 Dashboard Layout & Information Density
+* **Hover Tooltip Secondary Descriptions**: Removed the static secondary description labels under "Quick Controls", "Traffic Stats", and "Active Configuration" preference groups. Replaced them with mouse hover tooltips (`set_tooltip_text`), saving vertical screen real estate while preserving informative guidance.
+* **Active Subscription Last Updated Timestamp**: Replaced the redundant "In use: <name>" subtitle under "Active Subscription" with the actual formatted last update timestamp (`YYYY-MM-DD HH:MM:SS`), providing immediate visibility into subscription freshness directly from the dashboard.
+* **One-Click Active Subscription Refresh**: Removed the redundant checkmark pill next to the subscription dropdown and introduced a dedicated refresh icon button (`view-refresh-symbolic`) with an animated loading spinner (`gtk4::Spinner`). Enables refreshing the currently active subscription directly from the dashboard without navigating to the Subscriptions view.
+
 ## [1.1.0] - 2026-10-02
 
 ### 🚀 Architecture, Single-Instance Lifecycle & UI/UX Evolution

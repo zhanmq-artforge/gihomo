@@ -29,6 +29,11 @@
   <url type="bugtracker">https://github.com/zhanmq-artforge/gihomo/issues</url>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.1.1" date="2026-10-08">
+      <description>
+        <p>UI refinement release: Replaced text buttons with circular icon buttons for proxy node selection, moved group secondary descriptions to hover tooltips in Dashboard, added last updated timestamp and one-click refresh button with spinner for the active subscription.</p>
+      </description>
+    </release>
     <release version="1.1.0" date="2026-10-02">
       <description>
         <p>Feature release: D-Bus single-instance application lifecycle and background daemon stability, navigation sidebar functional tiering with 1px dividers, system tray quick subscription switching submenu, and proxies view full-width toolbar with narrow breakpoint responsive design.</p>

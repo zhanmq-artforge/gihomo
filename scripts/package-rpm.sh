@@ -9,7 +9,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 PKG_NAME="gihomo"
-PKG_VERSION="1.1.0"
+PKG_VERSION="${PKG_VERSION:-$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)}"
 OUTPUT_DIR="${PROJECT_ROOT}/dist"
 RPMBUILD_DIR="${PROJECT_ROOT}/target/rpmbuild"
 SPEC_FILE="${PROJECT_ROOT}/packaging/rpm/gihomo.spec"

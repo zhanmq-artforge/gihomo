@@ -1119,7 +1119,11 @@ pub fn set_language(lang: Language) {
 
 /// Helper to translate backend AppEvent notifications if English is active.
 pub fn localize_notification(msg: &str) -> String {
-    if active_resolved_language() == ResolvedLanguage::ZhCn {
+    localize_notification_for_lang(msg, active_resolved_language())
+}
+
+pub fn localize_notification_for_lang(msg: &str, lang: ResolvedLanguage) -> String {
+    if lang == ResolvedLanguage::ZhCn {
         return msg.to_string();
     }
 
@@ -1366,14 +1370,28 @@ mod tests {
 
     #[test]
     fn test_localize_notification() {
+        // Test ZhCn behavior
         assert_eq!(
-            localize_notification("Mihomo 内核已启动"),
+            localize_notification_for_lang("Mihomo 内核已启动", ResolvedLanguage::ZhCn),
             "Mihomo 内核已启动"
         );
-        // Test pattern matching logic directly
         assert_eq!(
-            localize_notification("已切换至 [rule] 模式"),
+            localize_notification_for_lang("已切换至 [rule] 模式", ResolvedLanguage::ZhCn),
             "已切换至 [rule] 模式"
+        );
+
+        // Test EnUs behavior
+        assert_eq!(
+            localize_notification_for_lang("Mihomo 内核已启动", ResolvedLanguage::EnUs),
+            "Mihomo kernel started"
+        );
+        assert_eq!(
+            localize_notification_for_lang("已切换至 [rule] 模式", ResolvedLanguage::EnUs),
+            "Switched to [rule] mode"
+        );
+        assert_eq!(
+            localize_notification_for_lang("已切换 [Proxy] -> NodeA", ResolvedLanguage::EnUs),
+            "Switched [Proxy] -> NodeA"
         );
     }
 

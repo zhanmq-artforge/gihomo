@@ -10,7 +10,7 @@ cd "$PROJECT_ROOT"
 
 APP_ID="art.artforge.Gihomo"
 PKG_NAME="gihomo"
-PKG_VERSION="1.1.0"
+PKG_VERSION="${PKG_VERSION:-$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)}"
 
 # Architecture detection: argument > environment variable > dpkg > uname
 RAW_ARCH="${1:-${PKG_ARCH:-$(dpkg --print-architecture 2>/dev/null || uname -m)}}"

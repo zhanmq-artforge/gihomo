@@ -572,7 +572,7 @@ dependencies = [
 
 [[package]]
 name = "gihomo"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "gihomo-app",
  "gihomo-ui",
@@ -585,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "gihomo-app"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "async-channel",
  "chrono",
@@ -602,7 +602,7 @@ dependencies = [
 
 [[package]]
 name = "gihomo-core"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "base64",
  "chrono",
@@ -617,7 +617,7 @@ dependencies = [
 
 [[package]]
 name = "gihomo-infra"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "async-channel",
  "chrono",
@@ -640,7 +640,7 @@ dependencies = [
 
 [[package]]
 name = "gihomo-ui"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "async-channel",
  "chrono",

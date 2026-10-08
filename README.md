@@ -61,8 +61,11 @@
   * Breakpoint-aware adaptive layout (`max-width: 560px`): wraps current node badges under group name, node metadata under node name, eliminating overflow on compact screens.
   * Standardized Libadwaita `gtk::DropDown` selector for proxy groups, free of custom CSS hacks.
   * In-place diff updates: refreshes latency badges and selections without scroll jumps or list re-rendering.
-  * Individual on-demand node latency probing with dedicated ping buttons and color-graded badges (Green < 400ms, Orange 400-1000ms, Red > 1000ms / Timeout).
-* **🌍 GeoIP & GeoSite Database Management**:
+  * Individual on-demand node latency probing with dedicated ping buttons, compact circular icon buttons for quick node selection, and color-graded badges (Green < 400ms, Orange 400-1000ms, Red > 1000ms / Timeout).
+* **📊 Ergonomic Dashboard & Quick Refresh**:
+  * Clean layout with hover tooltips for preference group descriptions, reducing vertical clutter.
+  * Direct visibility of the active subscription's last updated timestamp.
+  * One-click active subscription refresh button with animated spinner right on the dashboard.
   * Built-in Geo database manager inspecting file presence, file size, and last updated timestamps.
   * One-click upstream database updater pulling directly from official/mirror sources with automatic kernel reload.
 * **🛡️ Hardened Exit Safety & Process Supervision**:
@@ -214,7 +217,11 @@ cargo generate-rpm
   * 窄屏断点自适应下沉（`≤ 560px`）：策略组已选节点及单节点元数据自动换行下沉至标题正下方并精准缩进，360px 视口下长文本末尾智能省略，彻底杜绝内容截断挤压；
   * 策略组切换采用原生 Libadwaita `gtk::DropDown` 下拉控件，彻底移除多余自定义 CSS，体验高度贴合 GNOME 桌面；
   * 原地增量刷新（In-Place Diff Update）：节点列表刷新与测速结果更新时原地更新数据，不重建控件，彻底消除滚动条跳动与界面闪烁；
-  * 节点列表中每个节点均配备专属独立即时测速图标按钮，提供色彩分级 Badge 反馈（绿色 < 400ms、橙色 400-1000ms、红色 > 1000ms 或超时）。
+  * 节点列表中每个节点均配备专属独立即时测速图标按钮与原生圆形选择图标按钮，提供色彩分级 Badge 反馈（绿色 < 400ms、橙色 400-1000ms、红色 > 1000ms 或超时）。
+* **📊 优雅人机交互与仪表盘就地刷新**：
+  * 卡片分组次要说明转为悬浮 Tooltip 提示，显著减少垂直方向空白挤压；
+  * 活动订阅副标题直观呈现订阅最新更新时间戳；
+  * 仪表盘提供专属即时刷新图标按钮与 Spinner 加载反馈，一键拉取最新节点与规则。
 * **🌍 GeoIP 与 GeoSite 数据库管理**：
   * “设置”界面内置 Geo 数据库看板，清晰显示数据库存在状态、文件体积与最后更新时间；
   * 支持官方源及镜像加速一键在线更新，更新后自动触发内核配置热重载。

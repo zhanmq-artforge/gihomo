@@ -122,8 +122,9 @@ fn setup_node_actions(
         prow.set_activatable(false);
     } else if is_selectable {
         let select_btn = Button::builder()
-            .label(tr("btn_select"))
-            .css_classes(["flat"])
+            .icon_name("object-select-symbolic")
+            .tooltip_text(tr("btn_select"))
+            .css_classes(["flat", "circular"])
             .valign(gtk4::Align::Center)
             .build();
 
