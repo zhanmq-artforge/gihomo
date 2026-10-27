@@ -1,3 +1,5 @@
+//! Main application window assembly, responsive adaptive navigation split-view, and reactive event loop.
+
 use adw::prelude::*;
 use gihomo_app::{AppEvent, AppService};
 use gtk4::subclass::prelude::*;
@@ -168,7 +170,7 @@ impl MainWindow {
                 }
                 db.update_proxy_status(service.is_proxy_enabled());
                 db.update_tun_status(service.is_tun_enabled());
-                if let Some(active) = service.get_active_subscription().await {
+                if let Some(active) = service.active_subscription().await {
                     db.update_active_subscription(Some(&active));
                 }
                 let _ = service.fetch_proxies().await;
@@ -300,7 +302,7 @@ impl MainWindow {
                     let service = service.clone();
                     let sub_clone = subscriptions.clone();
                     glib::MainContext::default().spawn_local(async move {
-                        if let Ok(subs) = service.get_subscriptions().await {
+                        if let Ok(subs) = service.subscriptions().await {
                             sub_clone.update_subscriptions(&subs);
                         }
                     });
@@ -398,11 +400,11 @@ impl MainWindow {
             let db_clone = dashboard.clone();
             let rules_clone = rules.clone();
             glib::MainContext::default().spawn_local(async move {
-                if let Ok(subs) = service.get_subscriptions().await {
+                if let Ok(subs) = service.subscriptions().await {
                     sub_clone.update_subscriptions(&subs);
                     db_clone.update_subscriptions_list(&subs);
                 }
-                if let Some(active) = service.get_active_subscription().await {
+                if let Some(active) = service.active_subscription().await {
                     db_clone.update_active_subscription(Some(&active));
                 }
                 let _ = service.fetch_proxies().await;
@@ -476,6 +478,7 @@ impl MainWindow {
                             toast.set_priority(adw::ToastPriority::High);
                             toast_overlay.add_toast(toast);
                         }
+                        _ => {}
                     },
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => break,

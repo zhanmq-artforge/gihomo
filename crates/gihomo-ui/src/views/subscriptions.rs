@@ -5,7 +5,7 @@ use gtk4::{Button, Label, Orientation, ProgressBar, ScrolledWindow};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use crate::i18n::tr;
+use crate::i18n;
 
 pub struct SubscriptionsView {
     pub page: adw::NavigationPage,
@@ -45,11 +45,11 @@ impl SubscriptionsView {
 
         let add_content = adw::ButtonContent::builder()
             .icon_name("list-add-symbolic")
-            .label(tr("btn_add_sub"))
+            .label(i18n::tr("btn_add_sub"))
             .build();
         let add_btn = Button::builder()
             .child(&add_content)
-            .tooltip_text(tr("btn_add_sub"))
+            .tooltip_text(i18n::tr("btn_add_sub"))
             .valign(gtk4::Align::Center)
             .css_classes(["suggested-action"])
             .build();
@@ -64,7 +64,7 @@ impl SubscriptionsView {
 
         let update_all_btn = Button::builder()
             .icon_name("view-refresh-symbolic")
-            .tooltip_text(tr("tooltip_update_all_subs"))
+            .tooltip_text(i18n::tr("tooltip_update_all_subs"))
             .sensitive(false)
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
@@ -77,8 +77,8 @@ impl SubscriptionsView {
 
         let status_page = adw::StatusPage::builder()
             .icon_name("network-workgroup-symbolic")
-            .title(tr("empty_sub_title"))
-            .description(tr("empty_sub_desc"))
+            .title(i18n::tr("empty_sub_title"))
+            .description(i18n::tr("empty_sub_desc"))
             .vexpand(true)
             .build();
 
@@ -103,7 +103,7 @@ impl SubscriptionsView {
         toolbar_view.set_content(Some(&scrolled));
 
         let page = adw::NavigationPage::builder()
-            .title(tr("tab_subscriptions"))
+            .title(i18n::tr("tab_subscriptions"))
             .tag("subscriptions")
             .child(&toolbar_view)
             .build();
@@ -115,7 +115,7 @@ impl SubscriptionsView {
         let current_interval = crate::i18n::auto_update_interval_minutes_config();
         let interval_model = build_interval_string_list();
         let auto_update_row = adw::ComboRow::builder()
-            .title(tr("sub_auto_update_interval"))
+            .title(i18n::tr("sub_auto_update_interval"))
             .model(&interval_model)
             .selected(interval_to_index(current_interval))
             .build();
@@ -133,7 +133,7 @@ impl SubscriptionsView {
         });
 
         let auto_update_group = adw::PreferencesGroup::builder()
-            .title(tr("sub_settings_group"))
+            .title(i18n::tr("sub_settings_group"))
             .build();
         auto_update_group.add(&auto_update_row);
 
@@ -161,7 +161,7 @@ impl SubscriptionsView {
                 }
 
                 update_all_btn.set_sensitive(false);
-                update_all_btn.set_tooltip_text(Some(tr("sub_refreshing")));
+                update_all_btn.set_tooltip_text(Some(i18n::tr("sub_refreshing")));
                 add_btn.set_sensitive(false);
                 list_box.set_sensitive(false);
                 bulk_spinner.set_visible(true);
@@ -178,7 +178,7 @@ impl SubscriptionsView {
                         Ok(summary) if summary.failures.is_empty() => {
                             service.emit_event(gihomo_app::AppEvent::Notification(format!(
                                 "{} ({}/{})",
-                                tr("sub_update_all_done"),
+                                i18n::tr("sub_update_all_done"),
                                 summary.updated,
                                 summary.total
                             )));
@@ -187,21 +187,21 @@ impl SubscriptionsView {
                             let details = summary.failures.join("; ");
                             service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
                                 "{} ({}/{}): {}",
-                                tr("sub_update_all_partial"),
+                                i18n::tr("sub_update_all_partial"),
                                 summary.updated,
                                 summary.total,
                                 details
                             )));
                         }
                         Err(error) => service.emit_event(gihomo_app::AppEvent::ErrorOccurred(
-                            format!("{}: {}", tr("toast_sub_failed"), error),
+                            format!("{}: {}", i18n::tr("toast_sub_failed"), error),
                         )),
                     }
 
                     updating_all.set(false);
                     bulk_spinner.stop();
                     bulk_spinner.set_visible(false);
-                    update_all_btn.set_tooltip_text(Some(tr("tooltip_update_all_subs")));
+                    update_all_btn.set_tooltip_text(Some(i18n::tr("tooltip_update_all_subs")));
                     update_all_btn.set_sensitive(list_box.first_child().is_some());
                     add_btn.set_sensitive(true);
                     list_box.set_sensitive(true);
@@ -231,14 +231,16 @@ impl SubscriptionsView {
     }
 
     pub fn update_ui_text(&self) {
-        self.page.set_title(tr("tab_subscriptions"));
-        self.add_content.set_label(tr("btn_add_sub"));
-        self.add_btn.set_tooltip_text(Some(tr("btn_add_sub")));
-        self.status_page.set_title(tr("empty_sub_title"));
-        self.status_page.set_description(Some(tr("empty_sub_desc")));
-        self.auto_update_group.set_title(tr("sub_settings_group"));
+        self.page.set_title(i18n::tr("tab_subscriptions"));
+        self.add_content.set_label(i18n::tr("btn_add_sub"));
+        self.add_btn.set_tooltip_text(Some(i18n::tr("btn_add_sub")));
+        self.status_page.set_title(i18n::tr("empty_sub_title"));
+        self.status_page
+            .set_description(Some(i18n::tr("empty_sub_desc")));
+        self.auto_update_group
+            .set_title(i18n::tr("sub_settings_group"));
         self.auto_update_row
-            .set_title(tr("sub_auto_update_interval"));
+            .set_title(i18n::tr("sub_auto_update_interval"));
         let selected = self.auto_update_row.selected();
         let new_model = build_interval_string_list();
         self.is_updating_interval.set(true);
@@ -249,9 +251,9 @@ impl SubscriptionsView {
         let subs = self.subs_cache.borrow().clone();
         self.render_subscriptions(&subs);
         let tooltip = if self.updating_all.get() {
-            tr("sub_refreshing")
+            i18n::tr("sub_refreshing")
         } else {
-            tr("tooltip_update_all_subs")
+            i18n::tr("tooltip_update_all_subs")
         };
         self.update_all_btn.set_tooltip_text(Some(tooltip));
     }
@@ -281,8 +283,8 @@ impl SubscriptionsView {
         self.list_box.append(&self.auto_update_group);
 
         let group = adw::PreferencesGroup::builder()
-            .title(tr("sub_list_title"))
-            .description(tr("sub_list_desc"))
+            .title(i18n::tr("sub_list_title"))
+            .description(i18n::tr("sub_list_desc"))
             .build();
 
         for sub in subs {
@@ -300,16 +302,16 @@ impl SubscriptionsView {
                         .format("%Y-%m-%d %H:%M:%S")
                         .to_string()
                 })
-                .unwrap_or_else(|| tr("sub_never_updated").to_string());
+                .unwrap_or_else(|| i18n::tr("sub_never_updated").to_string());
             expander.set_subtitle(&updated_time_str);
             if sub.updated_at.is_some() {
                 expander.set_tooltip_text(Some(&format!(
                     "{}: {}",
-                    tr("sub_updated_time"),
+                    i18n::tr("sub_updated_time"),
                     updated_time_str
                 )));
             } else {
-                expander.set_tooltip_text(Some(tr("sub_never_updated")));
+                expander.set_tooltip_text(Some(i18n::tr("sub_never_updated")));
             }
 
             let sub_spinner = gtk4::Spinner::builder()
@@ -323,7 +325,7 @@ impl SubscriptionsView {
             // 1. Status Indicator / Activate Button
             if sub.is_active {
                 let active_badge = Label::builder()
-                    .label(tr("badge_in_use"))
+                    .label(i18n::tr("badge_in_use"))
                     .css_classes(["pill", "caption", "success"])
                     .valign(gtk4::Align::Center)
                     .build();
@@ -331,7 +333,7 @@ impl SubscriptionsView {
             } else {
                 let select_btn = Button::builder()
                     .icon_name("emblem-ok-symbolic")
-                    .tooltip_text(tr("btn_set_active"))
+                    .tooltip_text(i18n::tr("btn_set_active"))
                     .valign(gtk4::Align::Center)
                     .css_classes(["flat"])
                     .build();
@@ -353,7 +355,7 @@ impl SubscriptionsView {
                         if let Err(error) = service.activate_subscription(&sub_id).await {
                             service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
                                 "{}: {}",
-                                tr("sub_activate_failed"),
+                                i18n::tr("sub_activate_failed"),
                                 error
                             )));
                         }
@@ -368,7 +370,7 @@ impl SubscriptionsView {
             // 2. Action: Refresh Button
             let refresh_btn = Button::builder()
                 .icon_name("view-refresh-symbolic")
-                .tooltip_text(tr("tooltip_refresh_sub"))
+                .tooltip_text(i18n::tr("tooltip_refresh_sub"))
                 .valign(gtk4::Align::Center)
                 .css_classes(["flat"])
                 .build();
@@ -391,7 +393,7 @@ impl SubscriptionsView {
                         if let Err(error) = service.update_subscription(&sub_id).await {
                             service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
                                 "{}: {}",
-                                tr("toast_sub_failed"),
+                                i18n::tr("toast_sub_failed"),
                                 error
                             )));
                         }
@@ -406,7 +408,7 @@ impl SubscriptionsView {
             // 3. Action: Edit Button
             let edit_btn = Button::builder()
                 .icon_name("document-edit-symbolic")
-                .tooltip_text(tr("tooltip_edit_sub"))
+                .tooltip_text(i18n::tr("tooltip_edit_sub"))
                 .valign(gtk4::Align::Center)
                 .css_classes(["flat"])
                 .build();
@@ -438,9 +440,9 @@ impl SubscriptionsView {
 
             // Sub-row 1: Subscription Address / Source (above traffic info)
             let (source_title, source_val, is_copyable) = match &sub.source {
-                SubscriptionSource::Url(url) => (tr("sub_address_title"), url.clone(), true),
+                SubscriptionSource::Url(url) => (i18n::tr("sub_address_title"), url.clone(), true),
                 SubscriptionSource::LocalFile(path) => {
-                    (tr("sub_local_file_title"), path.clone(), true)
+                    (i18n::tr("sub_local_file_title"), path.clone(), true)
                 }
                 SubscriptionSource::ShareLinks(raw) => {
                     let count = raw
@@ -448,11 +450,12 @@ impl SubscriptionsView {
                         .filter(|l| !l.trim().is_empty() && !l.trim().starts_with('#'))
                         .count();
                     (
-                        tr("tab_share_links"),
-                        format!("{} {}", count, tr("sub_nodes_count")),
+                        i18n::tr("tab_share_links"),
+                        format!("{} {}", count, i18n::tr("sub_nodes_count")),
                         false,
                     )
                 }
+                _ => ("-", "-".to_string(), false),
             };
 
             let address_row = adw::ActionRow::builder()
@@ -466,7 +469,7 @@ impl SubscriptionsView {
             if is_copyable {
                 let copy_btn = Button::builder()
                     .icon_name("edit-copy-symbolic")
-                    .tooltip_text(tr("tooltip_copy_address"))
+                    .tooltip_text(i18n::tr("tooltip_copy_address"))
                     .valign(gtk4::Align::Center)
                     .css_classes(["flat"])
                     .build();
@@ -498,7 +501,7 @@ impl SubscriptionsView {
                 let percentage = (info.usage_percentage() * 100.0) as u32;
 
                 let traffic_row = adw::ActionRow::builder()
-                    .title(tr("package_traffic_title"))
+                    .title(i18n::tr("package_traffic_title"))
                     .subtitle(format!("{} / {} ({}%)", used_str, total_str, percentage))
                     .title_lines(1)
                     .subtitle_lines(1)
@@ -527,7 +530,7 @@ fn build_delete_button(
 ) -> Button {
     let button = Button::builder()
         .icon_name("user-trash-symbolic")
-        .tooltip_text(tr("tooltip_delete_sub"))
+        .tooltip_text(i18n::tr("tooltip_delete_sub"))
         .valign(gtk4::Align::Center)
         .css_classes(["flat", "destructive-action"])
         .build();
@@ -538,10 +541,10 @@ fn build_delete_button(
         let Some(parent) = parent_window.borrow().clone() else {
             return;
         };
-        let body = tr("dialog_delete_sub_body").replace("{name}", &subscription_name);
-        let dialog = adw::AlertDialog::new(Some(tr("dialog_delete_sub_title")), Some(&body));
-        dialog.add_response("cancel", tr("btn_cancel"));
-        dialog.add_response("delete", tr("btn_delete_sub"));
+        let body = i18n::tr("dialog_delete_sub_body").replace("{name}", &subscription_name);
+        let dialog = adw::AlertDialog::new(Some(i18n::tr("dialog_delete_sub_title")), Some(&body));
+        dialog.add_response("cancel", i18n::tr("btn_cancel"));
+        dialog.add_response("delete", i18n::tr("btn_delete_sub"));
         dialog.set_default_response(Some("cancel"));
         dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
 
@@ -559,7 +562,7 @@ fn build_delete_button(
                 if let Err(error) = service.delete_subscription(&subscription_id).await {
                     service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
                         "{} [{}]: {}",
-                        tr("toast_sub_delete_failed"),
+                        i18n::tr("toast_sub_delete_failed"),
                         subscription_name,
                         error
                     )));
@@ -584,7 +587,7 @@ const AUTO_UPDATE_INTERVALS: &[(u32, &str)] = &[
 fn build_interval_string_list() -> gtk4::StringList {
     let list: Vec<&str> = AUTO_UPDATE_INTERVALS
         .iter()
-        .map(|(_, key)| tr(key))
+        .map(|(_, key)| i18n::tr(key))
         .collect();
     gtk4::StringList::new(&list)
 }

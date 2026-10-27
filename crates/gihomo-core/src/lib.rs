@@ -1,3 +1,5 @@
+//! Core domain models, configuration builders, protocol parsers, and error types for Gihomo.
+
 pub mod config;
 pub mod error;
 pub mod model;
@@ -15,5 +17,5 @@ pub use model::{
 };
 pub use parser::{
     decode_base64_flexible, generate_profile_from_proxies, parse_share_links,
-    parse_single_share_link, ParsedProxyNode,
+    parse_single_share_link, ParsedProxyNode, ParsedShareLinks,
 };

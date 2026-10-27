@@ -1,5 +1,10 @@
+//! Native desktop system tray integration powered by KSNI (StatusNotifierItem protocol).
+
 use gihomo_app::{AppEvent, AppService};
 use gihomo_core::Subscription;
+use gio::prelude::ApplicationExt;
+use glib::object::Cast;
+use gtk4::prelude::{GtkApplicationExt, GtkWindowExt, WidgetExt};
 use ksni::menu::{CheckmarkItem, MenuItem, StandardItem, SubMenu};
 use ksni::{Handle, ToolTip, Tray, TrayMethods};
 use tracing::{error, info};
@@ -14,21 +19,56 @@ pub struct GihomoTray {
     service: AppService,
 }
 
+/// Visual status of the application system tray icon.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[must_use]
+pub enum TrayIconState {
+    /// Idle / direct mode without active proxy or TUN.
+    #[default]
+    Idle,
+    /// System proxy is enabled and active.
+    ProxyActive,
+    /// TUN virtual interface mode is active.
+    TunActive,
+    /// Mihomo kernel reported an error state.
+    KernelError,
+}
+
+impl TrayIconState {
+    /// Constructs a `TrayIconState` based on proxy, TUN, and kernel health flags.
+    pub fn from_flags(proxy_enabled: bool, tun_enabled: bool, kernel_error: bool) -> Self {
+        if kernel_error {
+            Self::KernelError
+        } else if tun_enabled {
+            Self::TunActive
+        } else if proxy_enabled {
+            Self::ProxyActive
+        } else {
+            Self::Idle
+        }
+    }
+
+    /// Resolves the desktop theme icon identifier corresponding to this state.
+    #[must_use]
+    pub fn icon_name(&self) -> &'static str {
+        match self {
+            Self::KernelError => "art.artforge.Gihomo-red",
+            Self::TunActive => "art.artforge.Gihomo-green",
+            Self::ProxyActive => "art.artforge.Gihomo-blue",
+            Self::Idle => "art.artforge.Gihomo-gray",
+        }
+    }
+}
+
 impl GihomoTray {
+    /// Resolves icon name based on active operational flags.
+    #[must_use]
     pub fn resolve_icon_name(
         proxy_enabled: bool,
         tun_enabled: bool,
         kernel_error: bool,
     ) -> &'static str {
-        if kernel_error {
-            "art.artforge.Gihomo-red"
-        } else if tun_enabled {
-            "art.artforge.Gihomo-green"
-        } else if proxy_enabled {
-            "art.artforge.Gihomo-blue"
-        } else {
-            "art.artforge.Gihomo-gray"
-        }
+        TrayIconState::from_flags(proxy_enabled, tun_enabled, kernel_error).icon_name()
     }
 }
 
@@ -101,7 +141,6 @@ impl Tray for GihomoTray {
         glib::idle_add_once(|| {
             if let Some(app) = gio::Application::default() {
                 if let Some(gtk_app) = app.downcast_ref::<gtk4::Application>() {
-                    use gtk4::prelude::*;
                     if let Some(win) = gtk_app.windows().first() {
                         win.set_visible(true);
                         win.present();
@@ -111,7 +150,6 @@ impl Tray for GihomoTray {
                         return;
                     }
                 }
-                use gio::prelude::*;
                 app.activate();
             }
         });
@@ -128,7 +166,6 @@ impl Tray for GihomoTray {
                     glib::idle_add_once(|| {
                         if let Some(app) = gio::Application::default() {
                             if let Some(gtk_app) = app.downcast_ref::<gtk4::Application>() {
-                                use gtk4::prelude::*;
                                 if let Some(win) = gtk_app.windows().first() {
                                     win.set_visible(true);
                                     win.present();
@@ -140,7 +177,6 @@ impl Tray for GihomoTray {
                                     return;
                                 }
                             }
-                            use gio::prelude::*;
                             app.activate();
                         }
                     });
@@ -300,12 +336,12 @@ pub async fn start_tray(service: AppService) -> Option<Handle<GihomoTray>> {
     let proxy_enabled = service.is_proxy_enabled();
     let tun_enabled = service.is_tun_enabled();
     let proxy_mode = service
-        .get_proxy_mode()
+        .proxy_mode()
         .await
         .unwrap_or_else(|_| "rule".to_string());
 
-    let subscriptions = service.get_subscriptions().await.unwrap_or_default();
-    let active_sub_id = service.get_active_subscription().await.map(|s| s.id);
+    let subscriptions = service.subscriptions().await.unwrap_or_default();
+    let active_sub_id = service.active_subscription().await.map(|s| s.id);
 
     let tray = GihomoTray {
         proxy_enabled,

@@ -1,5 +1,5 @@
 Name:           gihomo
-Version:        1.1.1
+Version:        1.2.0
 Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 
@@ -76,6 +76,13 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/polkit-1/rules.d/art.artforge.Gihomo.rules
 
 %changelog
+* Tue Oct 27 2026 zhanmq <zhanmq.china@gmail.com> - 1.2.0-1
+- Unified single-node and concurrent batch latency test buttons with thunderbolt-symbolic icon
+- Comprehensive codebase refactoring following the Google Rust Style Guide (P0-P3)
+- Robust lock poisoning recovery in i18n subsystem to eliminate potential panic propagation
+- Strongly-typed structured errors and named structs across core parser and infra layers
+- Standardized idiomatic Rust getters across AppService, InfraService, and MihomoApiClient
+
 * Thu Oct 08 2026 zhanmq <zhanmq.china@gmail.com> - 1.1.1-1
 - Icon button for proxy node selection in proxies view
 - Tooltip-based secondary description for dashboard preference groups

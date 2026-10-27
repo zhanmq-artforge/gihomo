@@ -1,3 +1,5 @@
+//! REST and WebSocket API client for the Mihomo external controller.
+
 use crate::error::InfraError;
 use gihomo_core::TrafficStats;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
@@ -37,7 +39,7 @@ impl MihomoApiClient {
         }
     }
 
-    pub async fn get_version(&self) -> Result<Value, InfraError> {
+    pub async fn version(&self) -> Result<Value, InfraError> {
         let url = format!("{}/version", self.base_url);
         let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {
@@ -50,7 +52,7 @@ impl MihomoApiClient {
         Ok(json)
     }
 
-    pub async fn get_configs(&self) -> Result<Value, InfraError> {
+    pub async fn configs(&self) -> Result<Value, InfraError> {
         let url = format!("{}/configs", self.base_url);
         let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {
@@ -103,7 +105,7 @@ impl MihomoApiClient {
         self.patch_configs(payload).await
     }
 
-    pub async fn get_proxies(&self) -> Result<Value, InfraError> {
+    pub async fn proxies(&self) -> Result<Value, InfraError> {
         let url = format!("{}/proxies", self.base_url);
         let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {
@@ -156,8 +158,8 @@ impl MihomoApiClient {
         Ok(delay)
     }
 
-    pub async fn get_proxy_groups(&self) -> Result<Vec<gihomo_core::ProxyGroup>, InfraError> {
-        let json = self.get_proxies().await?;
+    pub async fn proxy_groups(&self) -> Result<Vec<gihomo_core::ProxyGroup>, InfraError> {
+        let json = self.proxies().await?;
         let proxies = json
             .get("proxies")
             .and_then(|v| v.as_object())
@@ -265,7 +267,7 @@ impl MihomoApiClient {
     }
 
     /// Fetch all active routing rules from Mihomo
-    pub async fn get_rules(&self) -> Result<Vec<gihomo_core::RuleItem>, InfraError> {
+    pub async fn rules(&self) -> Result<Vec<gihomo_core::RuleItem>, InfraError> {
         let url = format!("{}/rules", self.base_url);
         let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {
@@ -306,7 +308,7 @@ impl MihomoApiClient {
     }
 
     /// Fetch all rule providers from Mihomo
-    pub async fn get_rule_providers(&self) -> Result<Vec<gihomo_core::RuleProvider>, InfraError> {
+    pub async fn rule_providers(&self) -> Result<Vec<gihomo_core::RuleProvider>, InfraError> {
         let url = format!("{}/providers/rules", self.base_url);
         let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {
@@ -363,8 +365,8 @@ impl MihomoApiClient {
         Ok(())
     }
 
-    pub async fn get_mode(&self) -> Result<String, InfraError> {
-        let configs = self.get_configs().await?;
+    pub async fn mode(&self) -> Result<String, InfraError> {
+        let configs = self.configs().await?;
         let mode = configs
             .get("mode")
             .and_then(|v| v.as_str())
@@ -381,7 +383,7 @@ impl MihomoApiClient {
     }
 
     /// Fetches instantaneous traffic and cumulative totals from `/traffic` or `/connections`
-    pub async fn get_traffic_and_totals(&self) -> Result<TrafficStats, InfraError> {
+    pub async fn traffic_and_totals(&self) -> Result<TrafficStats, InfraError> {
         let url = format!("{}/connections", self.base_url);
         let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {
@@ -498,7 +500,7 @@ impl MihomoApiClient {
         Ok(())
     }
 
-    pub async fn get_connections(&self) -> Result<gihomo_core::ConnectionsSnapshot, InfraError> {
+    pub async fn connections(&self) -> Result<gihomo_core::ConnectionsSnapshot, InfraError> {
         let url = format!("{}/connections", self.base_url);
         let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {

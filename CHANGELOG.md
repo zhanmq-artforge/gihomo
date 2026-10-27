@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-10-27
+
+### ⚡ Latency Test Icon Modernization & Google Rust Style Guide Implementation
+
+#### ⚡ Proxies View & Global Latency Testing
+* **Unified Thunderbolt (`thunderbolt-symbolic`) Icons**:
+  * **Single-Node Latency Test**: Replaced the ambiguous bidirectional transfer icon (`network-transmit-receive-symbolic`) with GNOME's native standard lightning bolt icon (`thunderbolt-symbolic`), aligning with mental models across modern proxy clients.
+  * **Concurrent Batch Latency Test**: Updated the toolbar-level batch latency test button to use `thunderbolt-symbolic`, resolving icon ambiguity and visual hierarchy confusion.
+
+#### 🛡️ Full Google Rust Style Guide Engineering Adoption
+* **P0 Priority (Safety, Robustness & Error Handling)**:
+  * **Typed Error System**: Marked `CoreError`, `InfraError`, and `AppError` with `#[must_use]` and `#[non_exhaustive]` alongside complete item-level documentation; converted `InfraError::DownloadFailed(u16, String)` into a named struct variant `{ status, message }`.
+  * **Parser Error Migration**: Converted all 7 protocol parser functions in `gihomo-core` from `Result<T, String>` to structured `Result<T, CoreError>`.
+  * **Lock Poisoning Recovery**: Encapsulated global `I18N: RwLock<I18nState>` access inside poison-safe `read_i18n()` and `write_i18n()` helpers, preventing cascading application deadlocks caused by thread panics.
+* **P1 Priority (API Design, Type Safety & Naming Standards)**:
+  * **API Evolution Guard**: Annotated cross-crate enums and structs (`SubscriptionSource`, `KernelStatus`, `RemoteSubscriptionDownload`) with `#[non_exhaustive]` and implemented `std::fmt::Display` for `KernelStatus`.
+  * **Eliminated Boolean Blindness**: Refactored boolean flag resolution in tray management to a type-safe `TrayIconState` enum (`Active` / `Idle` / `Offline`).
+  * **Named Return Structs**: Refactored `parse_share_links` from an anonymous tuple to a named struct `ParsedShareLinks`.
+  * **Idiomatic Rust Getters**: Standardized all getters across `InfraService`, `MihomoApiClient`, and `AppService` by stripping non-idiomatic `get_` prefixes (e.g. `subscriptions()`, `proxies()`, `kernel_version()`, `rules()`).
+* **P2 Priority (Code Organization & Import Hygiene)**:
+  * **Prelude & Glob Removal**: Deprecated the custom `prelude` module in `gihomo-ui` in favor of explicit imports; converted unadorned `tr(...)` imports across views to qualified `i18n::tr(...)` calls.
+  * **Eliminated Magic Numbers**: Extracted named constants for spawn thread timeouts and default window dimensions.
+* **P3 Priority (Documentation & Algorithmic Refinement)**:
+  * **Module-Level Docs**: Added comprehensive `//!` architecture and responsibility docs across all 4 workspace crates and key modules.
+  * **Log Buffer Extraction**: Streamlined `read_recent_kernel_logs` to eliminate redundant intermediate `Vec` allocations and duplicate `.rev()` cycles.
+  * **Test Assertion Context**: Added descriptive failure messages across all test assertions.
+
 ## [1.1.1] - 2026-10-08
 
 ### 🎨 UI Refinement & Dashboard Ergonomics

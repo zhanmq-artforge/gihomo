@@ -6,11 +6,11 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use tracing::error;
 
-use crate::i18n::tr;
+use crate::i18n;
 
 pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) {
     let dialog = adw::Dialog::builder()
-        .title(tr("dialog_add_sub_title"))
+        .title(i18n::tr("dialog_add_sub_title"))
         .content_width(360)
         .build();
 
@@ -20,7 +20,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
 
     // Cancel Button (Start)
     let cancel_btn = Button::builder()
-        .label(tr("btn_cancel"))
+        .label(i18n::tr("btn_cancel"))
         .css_classes(["flat"])
         .build();
     {
@@ -33,7 +33,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
 
     // Add Button (End, Primary Action)
     let add_btn = Button::builder()
-        .label(tr("btn_add"))
+        .label(i18n::tr("btn_add"))
         .css_classes(["suggested-action"])
         .sensitive(false)
         .build();
@@ -67,12 +67,12 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
     let url_group = adw::PreferencesGroup::new();
 
     let url_name_row = adw::EntryRow::builder()
-        .title(tr("sub_name_row"))
+        .title(i18n::tr("sub_name_row"))
         .show_apply_button(false)
         .build();
 
     let url_link_row = adw::EntryRow::builder()
-        .title(tr("sub_url_row"))
+        .title(i18n::tr("sub_url_row"))
         .show_apply_button(false)
         .build();
 
@@ -85,7 +85,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
     view_stack.add_titled_with_icon(
         &url_box,
         Some("url_page"),
-        tr("tab_remote_sub"),
+        i18n::tr("tab_remote_sub"),
         "network-workgroup-symbolic",
     );
 
@@ -95,8 +95,8 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
     let links_group = adw::PreferencesGroup::new();
 
     let links_name_row = adw::EntryRow::builder()
-        .title(tr("share_links_name_row"))
-        .text(tr("share_links_default_name"))
+        .title(i18n::tr("share_links_name_row"))
+        .text(i18n::tr("share_links_default_name"))
         .show_apply_button(false)
         .build();
     links_group.add(&links_name_row);
@@ -105,7 +105,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
     paste_header_box.set_margin_top(4);
 
     let status_badge = gtk4::Label::builder()
-        .label(tr("share_links_preview_empty"))
+        .label(i18n::tr("share_links_preview_empty"))
         .halign(gtk4::Align::Start)
         .hexpand(true)
         .ellipsize(gtk4::pango::EllipsizeMode::End)
@@ -115,7 +115,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
 
     let paste_btn = Button::builder()
         .icon_name("edit-paste-symbolic")
-        .tooltip_text(tr("btn_paste_clipboard"))
+        .tooltip_text(i18n::tr("btn_paste_clipboard"))
         .valign(gtk4::Align::Center)
         .css_classes(["flat"])
         .build();
@@ -149,7 +149,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
     view_stack.add_titled_with_icon(
         &links_box,
         Some("links_page"),
-        tr("tab_share_links"),
+        i18n::tr("tab_share_links"),
         "insert-link-symbolic",
     );
 
@@ -159,13 +159,13 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
     let local_group = adw::PreferencesGroup::new();
 
     let local_name_row = adw::EntryRow::builder()
-        .title(tr("config_name_row"))
+        .title(i18n::tr("config_name_row"))
         .show_apply_button(false)
         .build();
 
     let file_chooser_row = adw::ActionRow::builder()
-        .title(tr("file_chooser_row"))
-        .subtitle(tr("file_chooser_none"))
+        .title(i18n::tr("file_chooser_row"))
+        .subtitle(i18n::tr("file_chooser_none"))
         .title_lines(1)
         .subtitle_lines(1)
         .activatable(true)
@@ -187,7 +187,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
     view_stack.add_titled_with_icon(
         &local_box,
         Some("local_page"),
-        tr("tab_local_sub"),
+        i18n::tr("tab_local_sub"),
         "document-open-symbolic",
     );
 
@@ -268,16 +268,16 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
             let text = buf
                 .text(&buf.start_iter(), &buf.end_iter(), false)
                 .to_string();
-            let (nodes, _) = gihomo_core::parse_share_links(&text);
+            let nodes = gihomo_core::parse_share_links(&text).nodes;
             let count = nodes.len();
             *parsed_nodes_count.borrow_mut() = count;
 
             if count == 0 {
-                status_badge.set_label(tr("share_links_preview_empty"));
+                status_badge.set_label(i18n::tr("share_links_preview_empty"));
                 status_badge.remove_css_class("accent");
                 status_badge.add_css_class("dim-label");
             } else {
-                status_badge.set_label(&format!("✓ {} {}", count, tr("sub_nodes_count")));
+                status_badge.set_label(&format!("✓ {} {}", count, i18n::tr("sub_nodes_count")));
                 status_badge.remove_css_class("dim-label");
                 status_badge.add_css_class("accent");
             }
@@ -349,7 +349,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
                 filter.add_pattern("*.yml");
 
                 let file_dialog = FileDialog::builder()
-                    .title(tr("file_chooser_row"))
+                    .title(i18n::tr("file_chooser_row"))
                     .modal(true)
                     .default_filter(&filter)
                     .build();
@@ -405,7 +405,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
         add_btn.connect_clicked(move |btn| {
             let page = view_stack.visible_child_name().unwrap_or_default();
             btn.set_sensitive(false);
-            btn.set_label(tr("sub_adding"));
+            btn.set_label(i18n::tr("sub_adding"));
 
             let btn_clone = btn.clone();
             let dialog_clone = dialog.clone();
@@ -422,7 +422,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
                             .and_then(|s| s.split('/').next())
                             .filter(|s| !s.is_empty())
                             .map(|s| s.to_string())
-                            .unwrap_or_else(|| tr("dialog_add_sub_title").to_string());
+                            .unwrap_or_else(|| i18n::tr("dialog_add_sub_title").to_string());
                     }
                     glib::MainContext::default().spawn_local(async move {
                         match service.add_url_subscription(name, url).await {
@@ -431,7 +431,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
                             }
                             Err(e) => {
                                 error!("Add URL subscription failed: {}", e);
-                                btn_clone.set_label(tr("btn_add"));
+                                btn_clone.set_label(i18n::tr("btn_add"));
                                 btn_clone.set_sensitive(true);
                             }
                         }
@@ -450,7 +450,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
                             }
                             Err(e) => {
                                 error!("Add share links subscription failed: {}", e);
-                                btn_clone.set_label(tr("btn_add"));
+                                btn_clone.set_label(i18n::tr("btn_add"));
                                 btn_clone.set_sensitive(true);
                             }
                         }
@@ -460,7 +460,7 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
                     let name = local_name_row.text().trim().to_string();
                     let path_opt = selected_file_path.borrow().clone();
                     let Some(path) = path_opt else {
-                        btn_clone.set_label(tr("btn_add"));
+                        btn_clone.set_label(i18n::tr("btn_add"));
                         btn_clone.set_sensitive(true);
                         return;
                     };
@@ -471,14 +471,14 @@ pub fn show_add_subscription_dialog(parent: &gtk4::Window, service: AppService) 
                             }
                             Err(e) => {
                                 error!("Add local subscription failed: {}", e);
-                                btn_clone.set_label(tr("btn_add"));
+                                btn_clone.set_label(i18n::tr("btn_add"));
                                 btn_clone.set_sensitive(true);
                             }
                         }
                     });
                 }
                 _ => {
-                    btn_clone.set_label(tr("btn_add"));
+                    btn_clone.set_label(i18n::tr("btn_add"));
                     btn_clone.set_sensitive(true);
                 }
             }

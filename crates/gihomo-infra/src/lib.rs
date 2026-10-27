@@ -1,3 +1,5 @@
+//! Infrastructure adapters for external APIs, system autostart, storage, supervision, and proxy settings.
+
 pub mod api;
 pub mod autostart;
 pub mod error;

@@ -1,3 +1,5 @@
+//! Mihomo kernel lifecycle management, process discovery, capabilities verification, and supervision.
+
 use crate::error::InfraError;
 use crate::storage::StorageManager;
 use gihomo_core::KernelStatus;
@@ -97,8 +99,8 @@ fi"#
         Ok(())
     }
 
-    /// Read kernel version string
-    pub async fn get_kernel_version(kernel_path: &Path) -> Option<String> {
+    /// Reads Mihomo kernel version string.
+    pub async fn kernel_version(kernel_path: &Path) -> Option<String> {
         let output = Command::new(kernel_path).arg("-v").output().await.ok()?;
         if output.status.success() {
             let version = String::from_utf8_lossy(&output.stdout);

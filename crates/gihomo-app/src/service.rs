@@ -1,8 +1,11 @@
+//! Application orchestration service coordinating storage, kernel lifecycle, proxy state, and notifications.
+
 use crate::error::AppError;
 use crate::event::AppEvent;
 use chrono::Utc;
 use gihomo_core::{
-    generate_base_config, merge_subscription_config, KernelStatus, Subscription, SubscriptionSource,
+    generate_base_config, merge_subscription_config, ConnectionsSnapshot, GeoDatabaseInfo,
+    KernelStatus, LogMessage, ProxyGroup, RuleItem, RuleProvider, Subscription, SubscriptionSource,
 };
 use gihomo_infra::{
     KernelManager, MihomoApiClient, RemoteSubscriptionDownload, StorageManager, SystemProxyManager,
@@ -65,14 +68,14 @@ impl AppService {
         let _ = self.event_tx.send(event);
     }
 
-    pub async fn get_subscriptions(&self) -> Result<Vec<Subscription>, AppError> {
+    pub async fn subscriptions(&self) -> Result<Vec<Subscription>, AppError> {
         self.storage
             .load_subscriptions()
             .await
             .map_err(|e| AppError::from(e.to_string()))
     }
 
-    pub async fn get_active_subscription(&self) -> Option<Subscription> {
+    pub async fn active_subscription(&self) -> Option<Subscription> {
         let guard = self.active_sub_id.read().await;
         if let Some(id) = guard.as_ref() {
             if let Ok(subs) = self.storage.load_subscriptions().await {
@@ -83,7 +86,7 @@ impl AppService {
     }
 
     pub async fn can_start_kernel(&self) -> bool {
-        self.storage.active_config_path().exists() || self.get_active_subscription().await.is_some()
+        self.storage.active_config_path().exists() || self.active_subscription().await.is_some()
     }
 
     pub fn mihomo_dir(&self) -> PathBuf {
@@ -136,9 +139,9 @@ impl AppService {
             .map_err(|e| AppError::from(format!("{}", e)))
     }
 
-    pub async fn get_kernel_version(&self) -> Option<String> {
+    pub async fn kernel_version(&self) -> Option<String> {
         if let Some(bin) = self.find_kernel_binary() {
-            KernelManager::get_kernel_version(&bin).await
+            KernelManager::kernel_version(&bin).await
         } else {
             None
         }
@@ -247,7 +250,7 @@ impl AppService {
             let mut interval = tokio::time::interval(Duration::from_secs(10));
             loop {
                 interval.tick().await;
-                if let Ok(configs) = this_tun.api.get_configs().await {
+                if let Ok(configs) = this_tun.api.configs().await {
                     if let Some(tun_obj) = configs.get("tun") {
                         if let Some(enable) = tun_obj.get("enable").and_then(|e| e.as_bool()) {
                             let prev = this_tun.tun_enabled.swap(enable, Ordering::SeqCst);
@@ -309,6 +312,7 @@ impl AppService {
             Ok(RemoteSubscriptionDownload::NotModified { .. }) => {
                 Err("拉取订阅失败: 远程服务返回内容为空".into())
             }
+            Ok(_) => Err("未知的下载状态响应".into()),
             Err(e) => Err(format!("拉取订阅失败: {}", e).into()),
         }
     }
@@ -358,7 +362,9 @@ impl AppService {
         links_text: String,
     ) -> Result<Subscription, AppError> {
         info!("Adding share links subscription: {}", name);
-        let (nodes, errors) = gihomo_core::parse_share_links(&links_text);
+        let parsed = gihomo_core::parse_share_links(&links_text);
+        let nodes = parsed.nodes;
+        let errors = parsed.failed_lines;
         if nodes.is_empty() {
             let msg = if !errors.is_empty() {
                 format!("未识别到有效节点: {}", errors.join("; "))
@@ -515,6 +521,7 @@ impl AppService {
                         sub.updated_at = Some(Utc::now());
                         false
                     }
+                    _ => false,
                 };
 
                 subs[sub_idx] = sub.clone();
@@ -572,7 +579,7 @@ impl AppService {
                 Ok(())
             }
             SubscriptionSource::ShareLinks(raw_links) => {
-                let (nodes, _) = gihomo_core::parse_share_links(raw_links);
+                let nodes = gihomo_core::parse_share_links(raw_links).nodes;
                 if nodes.is_empty() {
                     return Err("未识别到有效的代理节点".into());
                 }
@@ -605,6 +612,7 @@ impl AppService {
 
                 Ok(())
             }
+            _ => Ok(()),
         }
     }
 
@@ -639,6 +647,7 @@ impl AppService {
                             subscription.etag = etag;
                             subscription.user_info = user_info;
                         }
+                        _ => {}
                     }
                 }
                 SubscriptionSource::LocalFile(path) => {
@@ -650,13 +659,14 @@ impl AppService {
                     subscription.user_info = None;
                 }
                 SubscriptionSource::ShareLinks(raw_links) => {
-                    let (nodes, _) = gihomo_core::parse_share_links(raw_links);
+                    let nodes = gihomo_core::parse_share_links(raw_links).nodes;
                     let content = gihomo_core::generate_profile_from_proxies(&nodes)
                         .map_err(|error| AppError::from(error.to_string()))?;
                     self.storage.save_subscription_content(id, &content).await?;
                     subscription.etag = None;
                     subscription.user_info = None;
                 }
+                _ => return Err(AppError::from("未知的订阅源类型")),
             }
             subscription.updated_at = Some(Utc::now());
             subscription.source = source;
@@ -894,10 +904,10 @@ impl AppService {
     }
 
     /// Fetch current proxy groups from Mihomo
-    pub async fn fetch_proxies(&self) -> Result<Vec<gihomo_core::ProxyGroup>, AppError> {
+    pub async fn fetch_proxies(&self) -> Result<Vec<ProxyGroup>, AppError> {
         let groups = self
             .api
-            .get_proxy_groups()
+            .proxy_groups()
             .await
             .map_err(|e| format!("获取节点列表失败: {}", e))?;
         self.emit_event(AppEvent::ProxyGroupsUpdated(groups.clone()));
@@ -954,8 +964,8 @@ impl AppService {
     }
 
     /// Query current proxy mode from Mihomo (rule / global / direct)
-    pub async fn get_proxy_mode(&self) -> Result<String, AppError> {
-        self.api.get_mode().await.map_err(AppError::from)
+    pub async fn proxy_mode(&self) -> Result<String, AppError> {
+        self.api.mode().await.map_err(AppError::from)
     }
 
     /// Test individual node delay
@@ -972,10 +982,10 @@ impl AppService {
     }
 
     /// Fetch all routing rules
-    pub async fn fetch_rules(&self) -> Result<Vec<gihomo_core::RuleItem>, AppError> {
+    pub async fn fetch_rules(&self) -> Result<Vec<RuleItem>, AppError> {
         let rules = self
             .api
-            .get_rules()
+            .rules()
             .await
             .map_err(|e| format!("获取分流规则失败: {}", e))?;
         self.emit_event(AppEvent::RulesUpdated(rules.clone()));
@@ -983,9 +993,9 @@ impl AppService {
     }
 
     /// Fetch all rule providers
-    pub async fn fetch_rule_providers(&self) -> Result<Vec<gihomo_core::RuleProvider>, AppError> {
+    pub async fn fetch_rule_providers(&self) -> Result<Vec<RuleProvider>, AppError> {
         self.api
-            .get_rule_providers()
+            .rule_providers()
             .await
             .map_err(|e| AppError::from(format!("获取规则集失败: {}", e)))
     }
@@ -1006,8 +1016,8 @@ impl AppService {
     }
 
     /// Retrieve local Geo database status
-    pub async fn get_geo_databases(&self) -> Vec<gihomo_core::GeoDatabaseInfo> {
-        self.storage.get_geo_databases().await
+    pub async fn geo_databases(&self) -> Vec<GeoDatabaseInfo> {
+        self.storage.geo_databases().await
     }
 
     /// Update GeoIP and GeoSite databases from upstream
@@ -1076,9 +1086,9 @@ impl AppService {
         Ok(())
     }
 
-    pub async fn get_connections(&self) -> Result<gihomo_core::ConnectionsSnapshot, AppError> {
+    pub async fn connections(&self) -> Result<ConnectionsSnapshot, AppError> {
         self.api
-            .get_connections()
+            .connections()
             .await
             .map_err(|e| AppError::from(e.to_string()))
     }
@@ -1108,7 +1118,7 @@ impl AppService {
             .map_err(|e| AppError::from(e.to_string()))
     }
 
-    pub async fn get_recent_kernel_logs(&self, max_lines: usize) -> Vec<gihomo_core::LogMessage> {
+    pub async fn recent_kernel_logs(&self, max_lines: usize) -> Vec<LogMessage> {
         self.storage.read_recent_kernel_logs(max_lines).await
     }
 }

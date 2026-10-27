@@ -1,3 +1,5 @@
+//! Internationalization (i18n), theme preference management, and configuration persistence.
+
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -173,7 +175,7 @@ pub fn load_config() -> AppConfig {
 }
 
 pub fn preload_config() {
-    let _ = I18N.read().unwrap().config.language;
+    let _ = read_i18n().config.language;
 }
 
 pub fn save_config(config: &AppConfig) {
@@ -1071,12 +1073,23 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     })
 });
 
+#[inline]
+fn read_i18n() -> std::sync::RwLockReadGuard<'static, I18nManager> {
+    I18N.read().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+#[inline]
+fn write_i18n() -> std::sync::RwLockWriteGuard<'static, I18nManager> {
+    I18N.write()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 static LANGUAGE_CHANNEL: LazyLock<tokio::sync::broadcast::Sender<()>> =
     LazyLock::new(|| tokio::sync::broadcast::channel(16).0);
 
 /// Retrieve localized string for the given key in the currently active language.
 pub fn tr(key: &'static str) -> &'static str {
-    let mgr = I18N.read().unwrap();
+    let mgr = read_i18n();
     let dict = match mgr.active_language {
         ResolvedLanguage::ZhCn => &mgr.zh_dict,
         ResolvedLanguage::EnUs => &mgr.en_dict,
@@ -1092,15 +1105,15 @@ pub fn tr(key: &'static str) -> &'static str {
 }
 
 pub fn current_language_config() -> Language {
-    I18N.read().unwrap().config.language
+    read_i18n().config.language
 }
 
 pub fn current_theme_config() -> ThemeMode {
-    I18N.read().unwrap().config.theme
+    read_i18n().config.theme
 }
 
 pub fn active_resolved_language() -> ResolvedLanguage {
-    I18N.read().unwrap().active_language
+    read_i18n().active_language
 }
 
 pub fn language_change_receiver() -> tokio::sync::broadcast::Receiver<()> {
@@ -1108,7 +1121,7 @@ pub fn language_change_receiver() -> tokio::sync::broadcast::Receiver<()> {
 }
 
 pub fn set_language(lang: Language) {
-    let mut mgr = I18N.write().unwrap();
+    let mut mgr = write_i18n();
     mgr.config.language = lang;
     mgr.active_language = lang.resolved();
     save_config(&mgr.config);
@@ -1208,7 +1221,7 @@ pub fn localize_notification_for_lang(msg: &str, lang: ResolvedLanguage) -> Stri
 }
 
 pub fn set_theme(theme: ThemeMode) {
-    let mut mgr = I18N.write().unwrap();
+    let mut mgr = write_i18n();
     mgr.config.theme = theme;
     save_config(&mgr.config);
     apply_theme(theme);
@@ -1216,26 +1229,26 @@ pub fn set_theme(theme: ThemeMode) {
 }
 
 pub fn close_to_tray_config() -> bool {
-    I18N.read().unwrap().config.close_to_tray
+    read_i18n().config.close_to_tray
 }
 
 pub fn last_proxy_enabled_config() -> bool {
-    I18N.read().unwrap().config.last_proxy_enabled
+    read_i18n().config.last_proxy_enabled
 }
 
 pub fn set_close_to_tray(enabled: bool) {
-    let mut mgr = I18N.write().unwrap();
+    let mut mgr = write_i18n();
     mgr.config.close_to_tray = enabled;
     save_config(&mgr.config);
     info!(close_to_tray = enabled, "Close to tray preference updated");
 }
 
 pub fn auto_start_kernel_config() -> bool {
-    I18N.read().unwrap().config.auto_start_kernel
+    read_i18n().config.auto_start_kernel
 }
 
 pub fn set_auto_start_kernel(enabled: bool) {
-    let mut mgr = I18N.write().unwrap();
+    let mut mgr = write_i18n();
     mgr.config.auto_start_kernel = enabled;
     save_config(&mgr.config);
     info!(
@@ -1245,11 +1258,11 @@ pub fn set_auto_start_kernel(enabled: bool) {
 }
 
 pub fn auto_restore_proxy_config() -> bool {
-    I18N.read().unwrap().config.auto_restore_proxy
+    read_i18n().config.auto_restore_proxy
 }
 
 pub fn set_auto_restore_proxy(enabled: bool) {
-    let mut mgr = I18N.write().unwrap();
+    let mut mgr = write_i18n();
     mgr.config.auto_restore_proxy = enabled;
     save_config(&mgr.config);
     info!(
@@ -1259,11 +1272,11 @@ pub fn set_auto_restore_proxy(enabled: bool) {
 }
 
 pub fn auto_update_interval_minutes_config() -> u32 {
-    I18N.read().unwrap().config.auto_update_interval_minutes
+    read_i18n().config.auto_update_interval_minutes
 }
 
 pub fn set_auto_update_interval_minutes(minutes: u32) {
-    let mut mgr = I18N.write().unwrap();
+    let mut mgr = write_i18n();
     if mgr.config.auto_update_interval_minutes != minutes {
         mgr.config.auto_update_interval_minutes = minutes;
         save_config(&mgr.config);
@@ -1275,7 +1288,7 @@ pub fn set_auto_update_interval_minutes(minutes: u32) {
 }
 
 pub fn update_last_proxy_state(proxy_enabled: bool, tun_enabled: Option<bool>) {
-    let mut mgr = I18N.write().unwrap();
+    let mut mgr = write_i18n();
     mgr.config.last_proxy_enabled = proxy_enabled;
     if let Some(tun) = tun_enabled {
         mgr.config.last_tun_enabled = tun;
@@ -1325,7 +1338,7 @@ mod tests {
 
     #[test]
     fn test_dictionary_completeness() {
-        let mgr = I18N.read().unwrap();
+        let mgr = read_i18n();
         // Ensure all zh keys exist in en dict
         for key in mgr.zh_dict.keys() {
             assert!(

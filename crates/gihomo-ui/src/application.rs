@@ -1,3 +1,5 @@
+//! Gihomo GTK4 / AdwApplication lifecycle management, multi-instance forwarding, and startup orchestration.
+
 use adw::prelude::*;
 use gihomo_app::AppService;
 use gtk4::subclass::prelude::*;
@@ -219,7 +221,7 @@ async fn start_auto_update_scheduler(service: AppService) {
             }
         }
 
-        let Ok(subs) = service.get_subscriptions().await else {
+        let Ok(subs) = service.subscriptions().await else {
             continue;
         };
 

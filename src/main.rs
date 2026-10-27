@@ -1,7 +1,13 @@
+//! Main entry point for the Gihomo GTK4 / Libadwaita desktop application.
+
 use gihomo_app::AppService;
-use gihomo_ui::{prelude::*, ExitCode, GihomoApplication, APPLICATION_ID};
-use tracing::info;
+use gihomo_ui::{ExitCode, GihomoApplication, APPLICATION_ID};
+use gio::prelude::{ApplicationExt, ApplicationExtManual};
+use tracing::{info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+
+const DEFAULT_MIXED_PORT: u16 = 7890;
+const DEFAULT_CONTROLLER_PORT: u16 = 9090;
 
 fn init_logging() {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
@@ -36,7 +42,7 @@ fn main() -> ExitCode {
 
     // Register with D-Bus to determine if we are the primary instance or a remote (secondary) instance
     if let Err(e) = app.register(gio::Cancellable::NONE) {
-        tracing::warn!("Failed to register application on D-Bus: {}", e);
+        warn!("Failed to register application on D-Bus: {}", e);
     }
 
     if app.is_remote() {
@@ -48,7 +54,7 @@ fn main() -> ExitCode {
 
     // Create a persistent local-only controller secret before starting background tasks.
     let service = rt
-        .block_on(AppService::new(7890, 9090))
+        .block_on(AppService::new(DEFAULT_MIXED_PORT, DEFAULT_CONTROLLER_PORT))
         .expect("Failed to initialize application service");
 
     // Initialize environment & background tasks
@@ -88,7 +94,6 @@ fn main() -> ExitCode {
 
         glib::idle_add_once(|| {
             if let Some(app) = gio::Application::default() {
-                use gio::prelude::*;
                 app.quit();
             }
         });

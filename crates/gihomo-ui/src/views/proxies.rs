@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::time::Duration;
 
-use crate::i18n::tr;
+use crate::i18n;
 
 const INITIAL_VISIBLE_COUNT: usize = 60;
 const LOAD_MORE_STEP: usize = 60;
@@ -48,7 +48,7 @@ struct NodeWidgets {
 
 fn format_delay(delay: Option<u32>) -> (String, &'static str) {
     match delay {
-        Some(0) => (tr("timeout_badge").to_string(), "error"),
+        Some(0) => (i18n::tr("timeout_badge").to_string(), "error"),
         Some(d) if d < 400 => (format!("{} ms", d), "success"),
         Some(d) if d < 1000 => (format!("{} ms", d), "warning"),
         Some(d) => (format!("{} ms", d), "error"),
@@ -73,10 +73,10 @@ fn setup_node_actions(
 
     // 1. Single Node Ping Icon Button (always available for each node)
     let node_ping_btn = Button::builder()
-        .icon_name("network-transmit-receive-symbolic")
+        .icon_name("thunderbolt-symbolic")
         .valign(gtk4::Align::Center)
         .css_classes(["flat", "circular"])
-        .tooltip_text(tr("tooltip_ping_node"))
+        .tooltip_text(i18n::tr("tooltip_ping_node"))
         .build();
 
     {
@@ -101,7 +101,7 @@ fn setup_node_actions(
                         lbl.set_css_classes(&["pill", "caption", cls]);
                     }
                     Err(_) => {
-                        lbl.set_label(tr("timeout_badge"));
+                        lbl.set_label(i18n::tr("timeout_badge"));
                         lbl.set_css_classes(&["pill", "caption", "error"]);
                     }
                 }
@@ -114,7 +114,7 @@ fn setup_node_actions(
     // 2. Select Button or Active In-Use Badge
     if is_selected {
         let active_badge = Label::builder()
-            .label(tr("selected_badge"))
+            .label(i18n::tr("selected_badge"))
             .css_classes(["pill", "caption", "accent"])
             .valign(gtk4::Align::Center)
             .build();
@@ -123,7 +123,7 @@ fn setup_node_actions(
     } else if is_selectable {
         let select_btn = Button::builder()
             .icon_name("object-select-symbolic")
-            .tooltip_text(tr("btn_select"))
+            .tooltip_text(i18n::tr("btn_select"))
             .css_classes(["flat", "circular"])
             .valign(gtk4::Align::Center)
             .build();
@@ -246,7 +246,7 @@ impl GroupCard {
             .label(&group.name)
             .tooltip_text(format!(
                 "{}: {}",
-                tr("group_type_prefix").trim_end_matches(": "),
+                i18n::tr("group_type_prefix").trim_end_matches(": "),
                 type_desc
             ))
             .css_classes(["heading"])
@@ -274,7 +274,7 @@ impl GroupCard {
         let now_node_badge = Label::builder()
             .label(format!(
                 "{}: {}",
-                tr("current_node_prefix").trim_end_matches(": "),
+                i18n::tr("current_node_prefix").trim_end_matches(": "),
                 now_node
             ))
             .css_classes(["caption", "heading"])
@@ -298,7 +298,7 @@ impl GroupCard {
             .label(format!(
                 "{} {}",
                 group.nodes.len(),
-                tr("group_nodes_count_suffix")
+                i18n::tr("group_nodes_count_suffix")
             ))
             .css_classes(["caption", "dim-label"])
             .valign(if is_narrow {
@@ -344,7 +344,7 @@ impl GroupCard {
         body_box.append(&nodes_list);
 
         let empty_nodes_label = Label::builder()
-            .label(tr("empty_group_nodes"))
+            .label(i18n::tr("empty_group_nodes"))
             .css_classes(["dim-label", "caption"])
             .margin_top(12)
             .margin_bottom(12)
@@ -354,7 +354,7 @@ impl GroupCard {
         body_box.append(&empty_nodes_label);
 
         let load_more_btn = Button::builder()
-            .label(tr("btn_load_more_nodes"))
+            .label(i18n::tr("btn_load_more_nodes"))
             .css_classes(["suggested-action", "pill"])
             .halign(gtk4::Align::Center)
             .margin_top(6)
@@ -475,7 +475,7 @@ impl GroupCard {
 
         self.now_node_badge.set_label(&format!(
             "{}: {}",
-            tr("current_node_prefix").trim_end_matches(": "),
+            i18n::tr("current_node_prefix").trim_end_matches(": "),
             now_node
         ));
 
@@ -487,7 +487,7 @@ impl GroupCard {
         self.node_count_label.set_label(&format!(
             "{} {}",
             group.nodes.len(),
-            tr("group_nodes_count_suffix")
+            i18n::tr("group_nodes_count_suffix")
         ));
 
         // Attempt in-place diff update for nodes if structure matches
@@ -705,7 +705,7 @@ impl GroupCard {
         if matching_nodes.len() > limit {
             self.load_more_btn.set_label(&format!(
                 "{} ({} / {})",
-                tr("btn_load_more_nodes"),
+                i18n::tr("btn_load_more_nodes"),
                 limit,
                 matching_nodes.len()
             ));
@@ -814,7 +814,7 @@ impl ProxiesView {
         mode_row.set_hexpand(true);
 
         let mode_label = Label::builder()
-            .label(tr("proxies_mode_label"))
+            .label(i18n::tr("proxies_mode_label"))
             .css_classes(["dim-label"])
             .valign(gtk4::Align::Center)
             .build();
@@ -824,17 +824,17 @@ impl ProxiesView {
         mode_box.add_css_class("linked");
 
         let btn_rule_mode = Button::builder()
-            .label(tr("mode_rule"))
-            .tooltip_text(tr("mode_rule_tooltip"))
+            .label(i18n::tr("mode_rule"))
+            .tooltip_text(i18n::tr("mode_rule_tooltip"))
             .css_classes(["suggested-action"])
             .build();
         let btn_global_mode = Button::builder()
-            .label(tr("mode_global"))
-            .tooltip_text(tr("mode_global_tooltip"))
+            .label(i18n::tr("mode_global"))
+            .tooltip_text(i18n::tr("mode_global_tooltip"))
             .build();
         let btn_direct_mode = Button::builder()
-            .label(tr("mode_direct"))
-            .tooltip_text(tr("mode_direct_tooltip"))
+            .label(i18n::tr("mode_direct"))
+            .tooltip_text(i18n::tr("mode_direct_tooltip"))
             .build();
 
         mode_box.append(&btn_rule_mode);
@@ -848,22 +848,22 @@ impl ProxiesView {
         action_row.set_hexpand(true);
 
         let search_entry = SearchEntry::builder()
-            .placeholder_text(tr("proxy_search_placeholder"))
+            .placeholder_text(i18n::tr("proxy_search_placeholder"))
             .valign(gtk4::Align::Center)
             .hexpand(true)
             .build();
         action_row.append(&search_entry);
 
         let ping_all_btn = Button::builder()
-            .icon_name("network-transmit-receive-symbolic")
-            .tooltip_text(tr("tooltip_ping_all_groups"))
+            .icon_name("thunderbolt-symbolic")
+            .tooltip_text(i18n::tr("tooltip_ping_all_groups"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
 
         let refresh_btn = Button::builder()
             .icon_name("view-refresh-symbolic")
-            .tooltip_text(tr("tooltip_refresh_proxies"))
+            .tooltip_text(i18n::tr("tooltip_refresh_proxies"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
@@ -881,7 +881,7 @@ impl ProxiesView {
         global_banner_box.set_margin_top(2);
         let global_icon = gtk4::Image::from_icon_name("dialog-information-symbolic");
         let global_lbl = Label::builder()
-            .label(tr("mode_global_banner"))
+            .label(i18n::tr("mode_global_banner"))
             .wrap(true)
             .halign(gtk4::Align::Start)
             .hexpand(true)
@@ -897,7 +897,7 @@ impl ProxiesView {
         direct_banner_box.set_margin_top(2);
         let direct_icon = gtk4::Image::from_icon_name("network-offline-symbolic");
         let direct_lbl = Label::builder()
-            .label(tr("mode_direct_banner"))
+            .label(i18n::tr("mode_direct_banner"))
             .wrap(true)
             .halign(gtk4::Align::Start)
             .hexpand(true)
@@ -910,8 +910,8 @@ impl ProxiesView {
         // 3. Status page for empty state
         let status_page = adw::StatusPage::builder()
             .icon_name("network-server-symbolic")
-            .title(tr("empty_proxies_title"))
-            .description(tr("empty_proxies_desc"))
+            .title(i18n::tr("empty_proxies_title"))
+            .description(i18n::tr("empty_proxies_desc"))
             .vexpand(true)
             .build();
 
@@ -958,7 +958,7 @@ impl ProxiesView {
         );
 
         let page = adw::NavigationPage::builder()
-            .title(tr("tab_proxies"))
+            .title(i18n::tr("tab_proxies"))
             .tag("proxies")
             .child(&toolbar_view)
             .build();
@@ -1131,28 +1131,28 @@ impl ProxiesView {
     }
 
     pub fn update_ui_text(&self) {
-        self.page.set_title(tr("tab_proxies"));
-        self.mode_label.set_label(tr("proxies_mode_label"));
-        self.btn_rule_mode.set_label(tr("mode_rule"));
+        self.page.set_title(i18n::tr("tab_proxies"));
+        self.mode_label.set_label(i18n::tr("proxies_mode_label"));
+        self.btn_rule_mode.set_label(i18n::tr("mode_rule"));
         self.btn_rule_mode
-            .set_tooltip_text(Some(tr("mode_rule_tooltip")));
-        self.btn_global_mode.set_label(tr("mode_global"));
+            .set_tooltip_text(Some(i18n::tr("mode_rule_tooltip")));
+        self.btn_global_mode.set_label(i18n::tr("mode_global"));
         self.btn_global_mode
-            .set_tooltip_text(Some(tr("mode_global_tooltip")));
-        self.btn_direct_mode.set_label(tr("mode_direct"));
+            .set_tooltip_text(Some(i18n::tr("mode_global_tooltip")));
+        self.btn_direct_mode.set_label(i18n::tr("mode_direct"));
         self.btn_direct_mode
-            .set_tooltip_text(Some(tr("mode_direct_tooltip")));
+            .set_tooltip_text(Some(i18n::tr("mode_direct_tooltip")));
 
-        self.status_page.set_title(tr("empty_proxies_title"));
+        self.status_page.set_title(i18n::tr("empty_proxies_title"));
         self.status_page
-            .set_description(Some(tr("empty_proxies_desc")));
+            .set_description(Some(i18n::tr("empty_proxies_desc")));
 
         self.search_entry
-            .set_placeholder_text(Some(tr("proxy_search_placeholder")));
+            .set_placeholder_text(Some(i18n::tr("proxy_search_placeholder")));
         self.ping_all_btn
-            .set_tooltip_text(Some(tr("tooltip_ping_all_groups")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_ping_all_groups")));
         self.refresh_btn
-            .set_tooltip_text(Some(tr("tooltip_refresh_proxies")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_refresh_proxies")));
 
         let groups = self.groups_cache.borrow().clone();
         self.render_all_cards(&groups);

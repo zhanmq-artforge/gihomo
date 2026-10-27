@@ -6,6 +6,11 @@ use serde_yaml::{Mapping, Value};
 use std::collections::HashSet;
 use url::Url;
 
+#[inline]
+fn invalid_sub(msg: impl Into<String>) -> CoreError {
+    CoreError::InvalidSubscription(msg.into())
+}
+
 /// Represents a successfully parsed proxy node from a share link
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ParsedProxyNode {
@@ -17,19 +22,20 @@ pub struct ParsedProxyNode {
 }
 
 /// Decodes base64 string flexibly (standard or url-safe, with or without padding)
-pub fn decode_base64_flexible(input: &str) -> Result<String, String> {
+pub fn decode_base64_flexible(input: &str) -> Result<String, CoreError> {
     let s = input.trim().replace(['\n', '\r', ' '], "");
     let bytes = STANDARD
         .decode(&s)
         .or_else(|_| STANDARD_NO_PAD.decode(&s))
         .or_else(|_| URL_SAFE.decode(&s))
         .or_else(|_| URL_SAFE_NO_PAD.decode(&s))
-        .map_err(|e| format!("Base64 解码失败: {}", e))?;
+        .map_err(|e| invalid_sub(format!("Base64 解码失败: {}", e)))?;
 
-    String::from_utf8(bytes).map_err(|e| format!("UTF-8 字符解码失败: {}", e))
+    String::from_utf8(bytes).map_err(|e| invalid_sub(format!("UTF-8 字符解码失败: {}", e)))
 }
 
 /// Robust UTF-8 percent-decoding helper
+#[must_use]
 pub fn percent_decode(input: &str) -> String {
     let mut bytes = Vec::new();
     let mut chars = input.bytes();
@@ -56,11 +62,11 @@ pub fn percent_decode(input: &str) -> String {
 }
 
 /// Parses a Shadowsocks (`ss://`) share link
-pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, String> {
+pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
     let without_scheme = raw
         .strip_prefix("ss://")
-        .ok_or_else(|| "缺少 ss:// 前缀".to_string())?;
+        .ok_or_else(|| invalid_sub("缺少 ss:// 前缀"))?;
 
     let (main_part, tag) = match without_scheme.split_once('#') {
         Some((m, t)) => (m, percent_decode(t)),
@@ -70,7 +76,7 @@ pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, String> {
     let (cipher, password, host, port) = if main_part.contains('@') {
         let (user_part, host_port_part) = main_part
             .split_once('@')
-            .ok_or_else(|| "无效的 Shadowsocks 格式".to_string())?;
+            .ok_or_else(|| invalid_sub("无效的 Shadowsocks 格式"))?;
 
         let user_info = if user_part.contains(':') {
             user_part.to_string()
@@ -80,7 +86,7 @@ pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, String> {
 
         let (c, p) = user_info
             .split_once(':')
-            .ok_or_else(|| "Shadowsocks 用户信息缺少密码".to_string())?;
+            .ok_or_else(|| invalid_sub("Shadowsocks 用户信息缺少密码"))?;
 
         let host_port_clean = host_port_part.split('?').next().unwrap_or(host_port_part);
         let (h, pt) = parse_host_port(host_port_clean)?;
@@ -89,10 +95,10 @@ pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, String> {
         let decoded = decode_base64_flexible(main_part)?;
         let (user_info, host_port_part) = decoded
             .split_once('@')
-            .ok_or_else(|| "Base64 解码后缺少 @ 分隔符".to_string())?;
+            .ok_or_else(|| invalid_sub("Base64 解码后缺少 @ 分隔符"))?;
         let (c, p) = user_info
             .split_once(':')
-            .ok_or_else(|| "Shadowsocks 用户信息缺少密码".to_string())?;
+            .ok_or_else(|| invalid_sub("Shadowsocks 用户信息缺少密码"))?;
         let (h, pt) = parse_host_port(host_port_part)?;
         (c.to_string(), p.to_string(), h, pt)
     };
@@ -137,33 +143,33 @@ pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, String> {
 }
 
 /// Parses a VMess (`vmess://`) share link (standard V2RayN Base64 JSON)
-pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, String> {
+pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
     let b64 = raw
         .strip_prefix("vmess://")
-        .ok_or_else(|| "缺少 vmess:// 前缀".to_string())?;
+        .ok_or_else(|| invalid_sub("缺少 vmess:// 前缀"))?;
 
     let json_str = decode_base64_flexible(b64)?;
-    let val: serde_json::Value =
-        serde_json::from_str(&json_str).map_err(|e| format!("VMess JSON 解析失败: {}", e))?;
+    let val: serde_json::Value = serde_json::from_str(&json_str)
+        .map_err(|e| invalid_sub(format!("VMess JSON 解析失败: {}", e)))?;
 
     let server = val
         .get("add")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "VMess 缺少服务器地址 (add)".to_string())?
+        .ok_or_else(|| invalid_sub("VMess 缺少服务器地址 (add)"))?
         .trim()
         .to_string();
 
     let port: u16 = match val.get("port") {
         Some(serde_json::Value::Number(n)) => n.as_u64().unwrap_or(443) as u16,
         Some(serde_json::Value::String(s)) => s.parse::<u16>().unwrap_or(443),
-        _ => return Err("VMess 缺少有效端口 (port)".to_string()),
+        _ => return Err(invalid_sub("VMess 缺少有效端口 (port)")),
     };
 
     let uuid = val
         .get("id")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "VMess 缺少 UUID (id)".to_string())?
+        .ok_or_else(|| invalid_sub("VMess 缺少 UUID (id)"))?
         .trim()
         .to_string();
 
@@ -328,18 +334,19 @@ pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, String> {
 }
 
 /// Parses a VLESS (`vless://`) share link
-pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, String> {
+pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
-    let parsed_url = Url::parse(raw).map_err(|e| format!("VLESS URL 解析失败: {}", e))?;
+    let parsed_url =
+        Url::parse(raw).map_err(|e| invalid_sub(format!("VLESS URL 解析失败: {}", e)))?;
 
     let uuid = parsed_url.username().to_string();
     if uuid.is_empty() {
-        return Err("VLESS 链接缺少 UUID".to_string());
+        return Err(invalid_sub("VLESS 链接缺少 UUID"));
     }
 
     let server = parsed_url
         .host_str()
-        .ok_or_else(|| "VLESS 链接缺少服务器地址".to_string())?
+        .ok_or_else(|| invalid_sub("VLESS 链接缺少服务器地址"))?
         .to_string();
 
     let port = parsed_url.port().unwrap_or(443);
@@ -479,18 +486,19 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, String> {
 }
 
 /// Parses a Trojan (`trojan://`) share link
-pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, String> {
+pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
-    let parsed_url = Url::parse(raw).map_err(|e| format!("Trojan URL 解析失败: {}", e))?;
+    let parsed_url =
+        Url::parse(raw).map_err(|e| invalid_sub(format!("Trojan URL 解析失败: {}", e)))?;
 
     let password = percent_decode(parsed_url.username());
     if password.is_empty() {
-        return Err("Trojan 链接缺少密码".to_string());
+        return Err(invalid_sub("Trojan 链接缺少密码"));
     }
 
     let server = parsed_url
         .host_str()
-        .ok_or_else(|| "Trojan 链接缺少服务器地址".to_string())?
+        .ok_or_else(|| invalid_sub("Trojan 链接缺少服务器地址"))?
         .to_string();
 
     let port = parsed_url.port().unwrap_or(443);
@@ -556,7 +564,7 @@ pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, String> {
 }
 
 /// Parses a Hysteria 2 (`hysteria2://` or `hy2://`) share link
-pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, String> {
+pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
     let normalized = if let Some(rest) = raw.strip_prefix("hy2://") {
         format!("hysteria2://{}", rest)
@@ -564,13 +572,13 @@ pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, String> {
         raw.to_string()
     };
 
-    let parsed_url =
-        Url::parse(&normalized).map_err(|e| format!("Hysteria 2 URL 解析失败: {}", e))?;
+    let parsed_url = Url::parse(&normalized)
+        .map_err(|e| invalid_sub(format!("Hysteria 2 URL 解析失败: {}", e)))?;
 
     let auth = percent_decode(parsed_url.username());
     let server = parsed_url
         .host_str()
-        .ok_or_else(|| "Hysteria 2 链接缺少服务器地址".to_string())?
+        .ok_or_else(|| invalid_sub("Hysteria 2 链接缺少服务器地址"))?
         .to_string();
 
     let port = parsed_url.port().unwrap_or(443);
@@ -646,7 +654,7 @@ pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, String> {
 }
 
 /// Dispatches a single share link to its corresponding protocol parser
-pub fn parse_single_share_link(link: &str) -> Result<ParsedProxyNode, String> {
+pub fn parse_single_share_link(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
     if raw.starts_with("ss://") {
         parse_ss(raw)
@@ -659,14 +667,24 @@ pub fn parse_single_share_link(link: &str) -> Result<ParsedProxyNode, String> {
     } else if raw.starts_with("hysteria2://") || raw.starts_with("hy2://") {
         parse_hysteria2(raw)
     } else {
-        Err(format!("暂不支持的协议链接: {}", raw))
+        Err(invalid_sub(format!("暂不支持的协议链接: {}", raw)))
     }
 }
 
+/// Result of parsing multi-line share links.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ParsedShareLinks {
+    /// Successfully parsed proxy nodes.
+    pub nodes: Vec<ParsedProxyNode>,
+    /// Malformed or unsupported lines that failed to parse.
+    pub failed_lines: Vec<String>,
+}
+
 /// Parses multi-line share links text and deduplicates node names
-pub fn parse_share_links(text: &str) -> (Vec<ParsedProxyNode>, Vec<String>) {
+#[must_use]
+pub fn parse_share_links(text: &str) -> ParsedShareLinks {
     let mut nodes = Vec::new();
-    let mut errors = Vec::new();
+    let mut failed_lines = Vec::new();
     let mut seen_names: HashSet<String> = HashSet::new();
 
     for line in text.lines() {
@@ -700,12 +718,15 @@ pub fn parse_share_links(text: &str) -> (Vec<ParsedProxyNode>, Vec<String>) {
                 nodes.push(node);
             }
             Err(e) => {
-                errors.push(format!("{}: {}", trimmed, e));
+                failed_lines.push(format!("{}: {}", trimmed, e));
             }
         }
     }
 
-    (nodes, errors)
+    ParsedShareLinks {
+        nodes,
+        failed_lines,
+    }
 }
 
 /// Generates a complete, functional Mihomo configuration YAML from parsed proxy nodes
@@ -828,28 +849,28 @@ pub fn generate_profile_from_proxies(nodes: &[ParsedProxyNode]) -> Result<String
         .map_err(|e| CoreError::InvalidSubscription(format!("序列化节点配置失败: {}", e)))
 }
 
-fn parse_host_port(input: &str) -> Result<(String, u16), String> {
+fn parse_host_port(input: &str) -> Result<(String, u16), CoreError> {
     let clean = input.trim();
     if clean.starts_with('[') {
         let end = clean
             .find(']')
-            .ok_or_else(|| "IPv6 地址缺少封闭中括号 ']'".to_string())?;
+            .ok_or_else(|| invalid_sub("IPv6 地址缺少封闭中括号 ']'"))?;
         let host = &clean[1..end];
         let rest = &clean[end + 1..];
         let port_str = rest
             .strip_prefix(':')
-            .ok_or_else(|| "缺少端口分隔符 ':'".to_string())?;
+            .ok_or_else(|| invalid_sub("缺少端口分隔符 ':'"))?;
         let port: u16 = port_str
             .parse()
-            .map_err(|_| format!("无效的端口号: {}", port_str))?;
+            .map_err(|_| invalid_sub(format!("无效的端口号: {}", port_str)))?;
         Ok((host.to_string(), port))
     } else {
         let (host, port_str) = clean
             .rsplit_once(':')
-            .ok_or_else(|| "缺少端口分隔符 ':'".to_string())?;
+            .ok_or_else(|| invalid_sub("缺少端口分隔符 ':'"))?;
         let port: u16 = port_str
             .parse()
-            .map_err(|_| format!("无效的端口号: {}", port_str))?;
+            .map_err(|_| invalid_sub(format!("无效的端口号: {}", port_str)))?;
         Ok((host.to_string(), port))
     }
 }
@@ -929,8 +950,9 @@ mod tests {
         ss://YWVzLTEyOC1nY206dGVzdA==@192.168.100.2:8888#SameName
         trojan://password123@example.com:443?sni=example.com#SameName
         "#;
-        let (nodes, errors) = parse_share_links(text);
-        assert_eq!(errors.len(), 0);
+        let parsed = parse_share_links(text);
+        assert_eq!(parsed.failed_lines.len(), 0);
+        let nodes = parsed.nodes;
         assert_eq!(nodes.len(), 3);
         assert_eq!(nodes[0].name, "SameName");
         assert_eq!(nodes[1].name, "SameName (2)");

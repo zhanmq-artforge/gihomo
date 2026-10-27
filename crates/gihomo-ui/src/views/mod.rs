@@ -1,3 +1,5 @@
+//! Modular desktop view pages (Dashboard, Proxies, Connections, Rules, Logs, Subscriptions, Settings).
+
 pub mod connections;
 pub mod dashboard;
 pub mod logs;

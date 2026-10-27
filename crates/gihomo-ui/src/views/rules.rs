@@ -1,4 +1,4 @@
-use crate::i18n::tr;
+use crate::i18n;
 use adw::prelude::*;
 use gihomo_app::AppService;
 use gihomo_core::{RuleItem, RuleProvider};
@@ -74,14 +74,14 @@ impl RulesView {
         let top_bar = gtk4::Box::new(Orientation::Horizontal, 8);
 
         let search_entry = SearchEntry::builder()
-            .placeholder_text(tr("rules_search_placeholder"))
+            .placeholder_text(i18n::tr("rules_search_placeholder"))
             .hexpand(true)
             .build();
         top_bar.append(&search_entry);
 
         let refresh_btn = Button::builder()
             .icon_name("view-refresh-symbolic")
-            .tooltip_text(tr("rules_refresh_tooltip"))
+            .tooltip_text(i18n::tr("rules_refresh_tooltip"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
@@ -89,8 +89,8 @@ impl RulesView {
 
         // Providers Group
         let providers_group = adw::PreferencesGroup::builder()
-            .title(tr("rules_providers_title"))
-            .description(tr("rules_providers_desc"))
+            .title(i18n::tr("rules_providers_title"))
+            .description(i18n::tr("rules_providers_desc"))
             .build();
         providers_group.set_visible(false);
 
@@ -101,8 +101,8 @@ impl RulesView {
 
         // Rules List Group
         let rules_group = adw::PreferencesGroup::builder()
-            .title(tr("rules_list_title"))
-            .description(tr("rules_list_desc"))
+            .title(i18n::tr("rules_list_title"))
+            .description(i18n::tr("rules_list_desc"))
             .build();
 
         let rules_list = gtk4::ListBox::new();
@@ -112,7 +112,7 @@ impl RulesView {
 
         // Load more button
         let load_more_btn = Button::builder()
-            .label(tr("btn_load_more"))
+            .label(i18n::tr("btn_load_more"))
             .css_classes(["suggested-action", "pill"])
             .halign(gtk4::Align::Center)
             .margin_top(12)
@@ -123,8 +123,8 @@ impl RulesView {
         // Status page for empty state
         let status_page = adw::StatusPage::builder()
             .icon_name("view-list-bullet-symbolic")
-            .title(tr("empty_rules_title"))
-            .description(tr("empty_rules_desc"))
+            .title(i18n::tr("empty_rules_title"))
+            .description(i18n::tr("empty_rules_desc"))
             .vexpand(true)
             .build();
 
@@ -180,7 +180,7 @@ impl RulesView {
         toolbar_view.set_content(Some(&breakpoint_bin));
 
         let page = adw::NavigationPage::builder()
-            .title(tr("tab_rules"))
+            .title(i18n::tr("tab_rules"))
             .tag("rules")
             .child(&toolbar_view)
             .build();
@@ -445,10 +445,11 @@ impl RulesView {
 
         let total_matches = filtered.len();
         if filter.is_empty() {
-            let desc = tr("rules_list_desc_format").replace("{count}", &rules.len().to_string());
+            let desc =
+                i18n::tr("rules_list_desc_format").replace("{count}", &rules.len().to_string());
             rules_group.set_description(Some(&desc));
         } else {
-            let desc = tr("rules_list_desc_filtered")
+            let desc = i18n::tr("rules_list_desc_filtered")
                 .replace("{filtered}", &total_matches.to_string())
                 .replace("{total}", &rules.len().to_string());
             rules_group.set_description(Some(&desc));
@@ -482,7 +483,7 @@ impl RulesView {
             title_vbox.set_valign(gtk4::Align::Center);
 
             let title_text = if rule.payload.is_empty() {
-                tr("rule_match_all").to_string()
+                i18n::tr("rule_match_all").to_string()
             } else {
                 rule.payload.clone()
             };
@@ -598,11 +599,11 @@ impl RulesView {
                         })
                         .unwrap_or_else(|_| value.to_string())
                 })
-                .unwrap_or_else(|| tr("sub_never_updated").to_string());
+                .unwrap_or_else(|| i18n::tr("sub_never_updated").to_string());
             let row = adw::ActionRow::builder()
                 .title(&p.name)
                 .subtitle(
-                    tr("rules_provider_subtitle")
+                    i18n::tr("rules_provider_subtitle")
                         .replace("{type}", &p.vehicle_type)
                         .replace("{count}", &p.rule_count.to_string())
                         .replace("{time}", &updated_at),
@@ -611,7 +612,7 @@ impl RulesView {
                 .build();
 
             let update_btn = Button::builder()
-                .label(tr("btn_update"))
+                .label(i18n::tr("btn_update"))
                 .css_classes(["flat"])
                 .valign(gtk4::Align::Center)
                 .build();
@@ -621,13 +622,13 @@ impl RulesView {
             let btn_clone = update_btn.clone();
             update_btn.connect_clicked(move |_| {
                 btn_clone.set_sensitive(false);
-                btn_clone.set_label(tr("sub_refreshing"));
+                btn_clone.set_label(i18n::tr("sub_refreshing"));
                 let service = service.clone();
                 let name = provider_name.clone();
                 let btn = btn_clone.clone();
                 glib::MainContext::default().spawn_local(async move {
                     let _ = service.update_rule_provider(&name).await;
-                    btn.set_label(tr("btn_update"));
+                    btn.set_label(i18n::tr("btn_update"));
                     btn.set_sensitive(true);
                 });
             });
@@ -638,19 +639,20 @@ impl RulesView {
     }
 
     pub fn update_ui_text(&self) {
-        self.page.set_title(tr("tab_rules"));
-        self.status_page.set_title(tr("empty_rules_title"));
+        self.page.set_title(i18n::tr("tab_rules"));
+        self.status_page.set_title(i18n::tr("empty_rules_title"));
         self.status_page
-            .set_description(Some(tr("empty_rules_desc")));
+            .set_description(Some(i18n::tr("empty_rules_desc")));
         self.search_entry
-            .set_placeholder_text(Some(tr("rules_search_placeholder")));
+            .set_placeholder_text(Some(i18n::tr("rules_search_placeholder")));
         self.refresh_btn
-            .set_tooltip_text(Some(tr("rules_refresh_tooltip")));
-        self.providers_group.set_title(tr("rules_providers_title"));
+            .set_tooltip_text(Some(i18n::tr("rules_refresh_tooltip")));
         self.providers_group
-            .set_description(Some(tr("rules_providers_desc")));
-        self.rules_group.set_title(tr("rules_list_title"));
-        self.load_more_btn.set_label(tr("btn_load_more"));
+            .set_title(i18n::tr("rules_providers_title"));
+        self.providers_group
+            .set_description(Some(i18n::tr("rules_providers_desc")));
+        self.rules_group.set_title(i18n::tr("rules_list_title"));
+        self.load_more_btn.set_label(i18n::tr("btn_load_more"));
         Self::render_rules(
             &self.all_rules.borrow(),
             &self.current_filter.borrow(),

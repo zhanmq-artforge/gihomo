@@ -1,3 +1,5 @@
+//! GNOME GSettings system proxy manager running in dedicated worker thread.
+
 use crate::error::InfraError;
 use gio::prelude::*;
 use glib::GString;

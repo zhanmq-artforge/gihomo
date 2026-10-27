@@ -1,8 +1,11 @@
+//! Mihomo configuration generation, merging, and security synthesis.
+
 use crate::error::CoreError;
 use crate::model::SubscriptionUserInfo;
 use serde_yaml::{Mapping, Value};
 
-/// Generates a clean base Mihomo configuration template
+/// Generates a clean base Mihomo configuration template.
+#[must_use]
 pub fn generate_base_config(
     mixed_port: u16,
     controller_port: u16,
@@ -181,6 +184,7 @@ pub fn merge_subscription_config(
 }
 
 /// Parses "Subscription-Userinfo: upload=1234; download=5678; total=9999; expire=1700000000"
+#[must_use]
 pub fn parse_user_info_header(header_val: &str) -> Option<SubscriptionUserInfo> {
     let mut upload = 0u64;
     let mut download = 0u64;
@@ -252,17 +256,35 @@ rules:
         let merged = merge_subscription_config(&base, sub, true, 7890, 9090, "secret123")
             .expect("Merge must succeed");
 
-        assert!(merged.contains("mixed-port: 7890"));
-        assert!(merged.contains("external-controller: 127.0.0.1:9090"));
-        assert!(merged.contains("HK-01"));
-        assert!(merged.contains("MATCH,PROXY"));
-        assert!(merged.contains("enable: true")); // TUN enabled
+        assert!(
+            merged.contains("mixed-port: 7890"),
+            "Merged config must define mixed-port 7890"
+        );
+        assert!(
+            merged.contains("external-controller: 127.0.0.1:9090"),
+            "Merged config must define controller port"
+        );
+        assert!(
+            merged.contains("HK-01"),
+            "Merged config must include subscription proxies"
+        );
+        assert!(
+            merged.contains("MATCH,PROXY"),
+            "Merged config must include subscription rules"
+        );
+        assert!(
+            merged.contains("enable: true"),
+            "TUN mode must be enabled in merged config"
+        );
     }
 
     #[test]
     fn test_generated_controller_is_local_only() {
         let config = generate_base_config(7890, 9090, "secret", false);
-        assert!(config.contains("external-controller: 127.0.0.1:9090"));
+        assert!(
+            config.contains("external-controller: 127.0.0.1:9090"),
+            "Controller must be bound to 127.0.0.1"
+        );
     }
 
     #[test]
@@ -271,8 +293,14 @@ rules:
         let secured = secure_controller_config(config, 9091, "persisted-secret")
             .expect("valid config should be secured");
         let parsed: Value = serde_yaml::from_str(&secured).expect("secured YAML should parse");
-        assert_eq!(parsed["external-controller"], "127.0.0.1:9091");
-        assert_eq!(parsed["secret"], "persisted-secret");
+        assert_eq!(
+            parsed["external-controller"], "127.0.0.1:9091",
+            "External controller port must be secured"
+        );
+        assert_eq!(
+            parsed["secret"], "persisted-secret",
+            "Secret must be enforced"
+        );
     }
 
     #[test]
@@ -305,10 +333,13 @@ rules:
         let merged = merge_subscription_config(&base, sub, false, 7890, 9090, "secret123")
             .expect("Merge must succeed");
 
-        assert!(merged.contains("sniffer:"));
-        assert!(merged.contains("hosts:"));
-        assert!(merged.contains("geox-url:"));
-        assert!(merged.contains("nameserver-policy:"));
-        assert!(merged.contains("TEST-01"));
+        assert!(merged.contains("sniffer:"), "Preserves sniffer config");
+        assert!(merged.contains("hosts:"), "Preserves hosts config");
+        assert!(merged.contains("geox-url:"), "Preserves geox-url config");
+        assert!(
+            merged.contains("nameserver-policy:"),
+            "Preserves nameserver-policy config"
+        );
+        assert!(merged.contains("TEST-01"), "Preserves proxies");
     }
 }

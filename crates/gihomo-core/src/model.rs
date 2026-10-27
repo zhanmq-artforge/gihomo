@@ -1,10 +1,17 @@
+//! Domain models for subscription management, proxy groups, rules, connections, and system states.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+/// Identifies the provenance or storage source of a subscription.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SubscriptionSource {
+    /// Remote HTTP/HTTPS subscription URL.
     Url(String),
+    /// Local file path on disk.
     LocalFile(String),
+    /// Raw batch share links text (e.g. ss://, vmess://).
     ShareLinks(String),
 }
 
@@ -114,12 +121,29 @@ pub struct TrafficStats {
     pub down_total: u64,
 }
 
+/// Operational status of the supervised Mihomo kernel process.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum KernelStatus {
+    /// Kernel process is actively running and responsive.
     Running,
+    /// Kernel process is stopped.
     Stopped,
+    /// Kernel executable was not found on system or local paths.
     NotFound,
+    /// Error encountered when launching or monitoring kernel.
     Error(String),
+}
+
+impl std::fmt::Display for KernelStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Running => write!(f, "Running"),
+            Self::Stopped => write!(f, "Stopped"),
+            Self::NotFound => write!(f, "NotFound"),
+            Self::Error(e) => write!(f, "Error: {}", e),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

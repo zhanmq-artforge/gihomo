@@ -5,7 +5,7 @@ use gtk4::{Button, Label, Orientation, ProgressBar, ScrolledWindow};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use crate::i18n::tr;
+use crate::i18n;
 
 pub struct DashboardView {
     pub page: adw::NavigationPage,
@@ -59,14 +59,14 @@ impl DashboardView {
 
         // Group 1: Quick Controls
         let control_group = adw::PreferencesGroup::builder()
-            .title(tr("ctrl_group_title"))
-            .tooltip_text(tr("ctrl_group_desc"))
+            .title(i18n::tr("ctrl_group_title"))
+            .tooltip_text(i18n::tr("ctrl_group_desc"))
             .build();
 
         // System Proxy Switch
         let proxy_switch = adw::SwitchRow::builder()
-            .title(tr("sys_proxy_title"))
-            .subtitle(tr("sys_proxy_sub"))
+            .title(i18n::tr("sys_proxy_title"))
+            .subtitle(i18n::tr("sys_proxy_sub"))
             .title_lines(1)
             .subtitle_lines(2)
             .active(service.is_proxy_enabled())
@@ -74,8 +74,8 @@ impl DashboardView {
 
         // TUN Switch
         let tun_switch = adw::SwitchRow::builder()
-            .title(tr("tun_title"))
-            .subtitle(tr("tun_sub"))
+            .title(i18n::tr("tun_title"))
+            .subtitle(i18n::tr("tun_sub"))
             .title_lines(1)
             .subtitle_lines(2)
             .active(service.is_tun_enabled())
@@ -83,8 +83,8 @@ impl DashboardView {
 
         // Mihomo Kernel Row
         let kernel_row = adw::ActionRow::builder()
-            .title(tr("kernel_status_title"))
-            .subtitle(tr("kernel_sub_not_found"))
+            .title(i18n::tr("kernel_status_title"))
+            .subtitle(i18n::tr("kernel_sub_not_found"))
             .title_lines(1)
             .subtitle_lines(2)
             .build();
@@ -102,21 +102,21 @@ impl DashboardView {
 
         let btn_start_kernel = Button::builder()
             .icon_name("media-playback-start-symbolic")
-            .tooltip_text(tr("btn_start_kernel_tooltip"))
+            .tooltip_text(i18n::tr("btn_start_kernel_tooltip"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
 
         let btn_restart_kernel = Button::builder()
             .icon_name("view-refresh-symbolic")
-            .tooltip_text(tr("btn_restart_kernel_tooltip"))
+            .tooltip_text(i18n::tr("btn_restart_kernel_tooltip"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
 
         let btn_stop_kernel = Button::builder()
             .icon_name("media-playback-stop-symbolic")
-            .tooltip_text(tr("btn_stop_kernel_tooltip"))
+            .tooltip_text(i18n::tr("btn_stop_kernel_tooltip"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
@@ -137,8 +137,8 @@ impl DashboardView {
 
         // Group 2: Traffic Stats
         let stats_group = adw::PreferencesGroup::builder()
-            .title(tr("traffic_title"))
-            .tooltip_text(tr("traffic_desc"))
+            .title(i18n::tr("traffic_title"))
+            .tooltip_text(i18n::tr("traffic_desc"))
             .build();
 
         let stats_row = adw::ActionRow::builder().build();
@@ -153,7 +153,7 @@ impl DashboardView {
         let up_box = gtk4::Box::new(Orientation::Vertical, 4);
         up_box.set_hexpand(true);
         let up_title = Label::builder()
-            .label(tr("realtime_up"))
+            .label(i18n::tr("realtime_up"))
             .css_classes(["dim-label", "caption"])
             .build();
         let upload_speed_label = Label::builder()
@@ -161,7 +161,7 @@ impl DashboardView {
             .css_classes(["title-3"])
             .build();
         let upload_total_label = Label::builder()
-            .label(format!("{}0 B", tr("total_prefix")))
+            .label(format!("{}0 B", i18n::tr("total_prefix")))
             .css_classes(["caption", "dim-label"])
             .build();
         up_box.append(&up_title);
@@ -172,7 +172,7 @@ impl DashboardView {
         let down_box = gtk4::Box::new(Orientation::Vertical, 4);
         down_box.set_hexpand(true);
         let down_title = Label::builder()
-            .label(tr("realtime_down"))
+            .label(i18n::tr("realtime_down"))
             .css_classes(["dim-label", "caption"])
             .build();
         let download_speed_label = Label::builder()
@@ -180,7 +180,7 @@ impl DashboardView {
             .css_classes(["title-3"])
             .build();
         let download_total_label = Label::builder()
-            .label(format!("{}0 B", tr("total_prefix")))
+            .label(format!("{}0 B", i18n::tr("total_prefix")))
             .css_classes(["caption", "dim-label"])
             .build();
         down_box.append(&down_title);
@@ -194,13 +194,13 @@ impl DashboardView {
 
         // Group 3: Active Subscription & Quick Switch
         let active_sub_group = adw::PreferencesGroup::builder()
-            .title(tr("active_sub_title"))
-            .tooltip_text(tr("active_sub_desc"))
+            .title(i18n::tr("active_sub_title"))
+            .tooltip_text(i18n::tr("active_sub_desc"))
             .build();
 
         let active_sub_row = adw::ActionRow::builder()
-            .title(tr("active_sub_row"))
-            .subtitle(tr("no_active_sub"))
+            .title(i18n::tr("active_sub_row"))
+            .subtitle(i18n::tr("no_active_sub"))
             .title_lines(1)
             .subtitle_lines(1)
             .build();
@@ -212,7 +212,7 @@ impl DashboardView {
 
         let btn_refresh_sub = Button::builder()
             .icon_name("view-refresh-symbolic")
-            .tooltip_text(tr("tooltip_refresh_sub"))
+            .tooltip_text(i18n::tr("tooltip_refresh_sub"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat", "circular"])
             .sensitive(false)
@@ -227,7 +227,7 @@ impl DashboardView {
         active_sub_row.add_suffix(&sub_dropdown);
 
         let package_traffic_row = adw::ActionRow::builder()
-            .title(tr("package_traffic_title"))
+            .title(i18n::tr("package_traffic_title"))
             .subtitle("...")
             .title_lines(1)
             .subtitle_lines(1)
@@ -260,7 +260,7 @@ impl DashboardView {
         toolbar_view.set_content(Some(&scrolled));
 
         let page = adw::NavigationPage::builder()
-            .title(tr("tab_dashboard"))
+            .title(i18n::tr("tab_dashboard"))
             .tag("dashboard")
             .child(&toolbar_view)
             .build();
@@ -317,7 +317,7 @@ impl DashboardView {
                 btn_stop.set_sensitive(false);
                 spinner.set_visible(true);
                 spinner.start();
-                badge.set_label(tr("kernel_starting"));
+                badge.set_label(i18n::tr("kernel_starting"));
                 badge.set_css_classes(&["pill", "caption", "warning"]);
 
                 let service = service.clone();
@@ -343,7 +343,7 @@ impl DashboardView {
                 btn_stop.set_sensitive(false);
                 spinner.set_visible(true);
                 spinner.start();
-                badge.set_label(tr("kernel_restarting"));
+                badge.set_label(i18n::tr("kernel_restarting"));
                 badge.set_css_classes(&["pill", "caption", "warning"]);
 
                 let service = service.clone();
@@ -369,7 +369,7 @@ impl DashboardView {
                 btn_stop.set_sensitive(false);
                 spinner.set_visible(true);
                 spinner.start();
-                badge.set_label(tr("kernel_stopping"));
+                badge.set_label(i18n::tr("kernel_stopping"));
                 badge.set_css_classes(&["pill", "caption", "warning"]);
 
                 let service = service.clone();
@@ -431,7 +431,7 @@ impl DashboardView {
                         if let Err(err) = service.update_subscription(&sub_id).await {
                             service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
                                 "{}: {}",
-                                tr("toast_sub_failed"),
+                                i18n::tr("toast_sub_failed"),
                                 err
                             )));
                         }
@@ -480,41 +480,43 @@ impl DashboardView {
     }
 
     pub fn update_ui_text(&self) {
-        self.page.set_title(tr("tab_dashboard"));
-        self.control_group.set_title(tr("ctrl_group_title"));
+        self.page.set_title(i18n::tr("tab_dashboard"));
+        self.control_group.set_title(i18n::tr("ctrl_group_title"));
         self.control_group.set_description(None);
         self.control_group
-            .set_tooltip_text(Some(tr("ctrl_group_desc")));
-        self.proxy_switch.set_title(tr("sys_proxy_title"));
-        self.proxy_switch.set_subtitle(tr("sys_proxy_sub"));
-        self.tun_switch.set_title(tr("tun_title"));
-        self.tun_switch.set_subtitle(tr("tun_sub"));
-        self.kernel_row.set_title(tr("kernel_status_title"));
+            .set_tooltip_text(Some(i18n::tr("ctrl_group_desc")));
+        self.proxy_switch.set_title(i18n::tr("sys_proxy_title"));
+        self.proxy_switch.set_subtitle(i18n::tr("sys_proxy_sub"));
+        self.tun_switch.set_title(i18n::tr("tun_title"));
+        self.tun_switch.set_subtitle(i18n::tr("tun_sub"));
+        self.kernel_row.set_title(i18n::tr("kernel_status_title"));
         self.btn_start_kernel
-            .set_tooltip_text(Some(tr("btn_start_kernel_tooltip")));
+            .set_tooltip_text(Some(i18n::tr("btn_start_kernel_tooltip")));
         self.btn_restart_kernel
-            .set_tooltip_text(Some(tr("btn_restart_kernel_tooltip")));
+            .set_tooltip_text(Some(i18n::tr("btn_restart_kernel_tooltip")));
         self.btn_stop_kernel
-            .set_tooltip_text(Some(tr("btn_stop_kernel_tooltip")));
+            .set_tooltip_text(Some(i18n::tr("btn_stop_kernel_tooltip")));
 
-        self.stats_group.set_title(tr("traffic_title"));
+        self.stats_group.set_title(i18n::tr("traffic_title"));
         self.stats_group.set_description(None);
-        self.stats_group.set_tooltip_text(Some(tr("traffic_desc")));
-        self.up_title.set_label(tr("realtime_up"));
-        self.down_title.set_label(tr("realtime_down"));
+        self.stats_group
+            .set_tooltip_text(Some(i18n::tr("traffic_desc")));
+        self.up_title.set_label(i18n::tr("realtime_up"));
+        self.down_title.set_label(i18n::tr("realtime_down"));
 
-        self.active_sub_group.set_title(tr("active_sub_title"));
+        self.active_sub_group
+            .set_title(i18n::tr("active_sub_title"));
         self.active_sub_group.set_description(None);
         self.active_sub_group
-            .set_tooltip_text(Some(tr("active_sub_desc")));
-        self.active_sub_row.set_title(tr("active_sub_row"));
+            .set_tooltip_text(Some(i18n::tr("active_sub_desc")));
+        self.active_sub_row.set_title(i18n::tr("active_sub_row"));
         self.btn_refresh_sub
-            .set_tooltip_text(Some(tr("tooltip_refresh_sub")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_refresh_sub")));
         self.package_traffic_row
-            .set_title(tr("package_traffic_title"));
+            .set_title(i18n::tr("package_traffic_title"));
 
         if self.subs_cache.borrow().is_empty() {
-            let empty_list = gtk4::StringList::new(&[tr("no_available_sub")]);
+            let empty_list = gtk4::StringList::new(&[i18n::tr("no_available_sub")]);
             self.is_updating_dropdown.set(true);
             self.sub_dropdown.set_model(Some(&empty_list));
             self.is_updating_dropdown.set(false);
@@ -551,34 +553,35 @@ impl DashboardView {
 
         match status {
             KernelStatus::Running => {
-                self.kernel_badge.set_label(tr("kernel_running"));
+                self.kernel_badge.set_label(i18n::tr("kernel_running"));
                 self.kernel_badge
                     .set_css_classes(&["pill", "caption", "success"]);
-                self.kernel_row.set_subtitle(tr("kernel_sub_running"));
+                self.kernel_row.set_subtitle(i18n::tr("kernel_sub_running"));
                 self.btn_start_kernel.set_sensitive(false);
                 self.btn_stop_kernel.set_sensitive(true);
                 self.btn_restart_kernel.set_sensitive(true);
             }
             KernelStatus::Stopped => {
-                self.kernel_badge.set_label(tr("kernel_stopped"));
+                self.kernel_badge.set_label(i18n::tr("kernel_stopped"));
                 self.kernel_badge
                     .set_css_classes(&["pill", "caption", "error"]);
-                self.kernel_row.set_subtitle(tr("kernel_sub_stopped"));
+                self.kernel_row.set_subtitle(i18n::tr("kernel_sub_stopped"));
                 self.btn_start_kernel.set_sensitive(true);
                 self.btn_stop_kernel.set_sensitive(false);
                 self.btn_restart_kernel.set_sensitive(false);
             }
             KernelStatus::NotFound => {
-                self.kernel_badge.set_label(tr("kernel_not_found"));
+                self.kernel_badge.set_label(i18n::tr("kernel_not_found"));
                 self.kernel_badge
                     .set_css_classes(&["pill", "caption", "dim-label"]);
-                self.kernel_row.set_subtitle(tr("kernel_sub_not_found"));
+                self.kernel_row
+                    .set_subtitle(i18n::tr("kernel_sub_not_found"));
                 self.btn_start_kernel.set_sensitive(false);
                 self.btn_stop_kernel.set_sensitive(false);
                 self.btn_restart_kernel.set_sensitive(false);
             }
             KernelStatus::Error(msg) => {
-                self.kernel_badge.set_label(tr("kernel_error"));
+                self.kernel_badge.set_label(i18n::tr("kernel_error"));
                 self.kernel_badge
                     .set_css_classes(&["pill", "caption", "warning"]);
                 self.kernel_row.set_subtitle(msg);
@@ -586,6 +589,7 @@ impl DashboardView {
                 self.btn_stop_kernel.set_sensitive(false);
                 self.btn_restart_kernel.set_sensitive(false);
             }
+            _ => {}
         }
     }
 
@@ -599,12 +603,12 @@ impl DashboardView {
 
         self.upload_total_label.set_label(&format!(
             "{}{}",
-            tr("total_prefix"),
+            i18n::tr("total_prefix"),
             SubscriptionUserInfo::format_bytes(stats.up_total)
         ));
         self.download_total_label.set_label(&format!(
             "{}{}",
-            tr("total_prefix"),
+            i18n::tr("total_prefix"),
             SubscriptionUserInfo::format_bytes(stats.down_total)
         ));
     }
@@ -614,7 +618,7 @@ impl DashboardView {
 
         self.is_updating_dropdown.set(true);
         if subs.is_empty() {
-            let empty_list = gtk4::StringList::new(&[tr("no_available_sub")]);
+            let empty_list = gtk4::StringList::new(&[i18n::tr("no_available_sub")]);
             self.sub_dropdown.set_model(Some(&empty_list));
             self.sub_dropdown.set_sensitive(false);
         } else {
@@ -645,10 +649,10 @@ impl DashboardView {
                         .format("%Y-%m-%d %H:%M:%S")
                         .to_string()
                 })
-                .unwrap_or_else(|| tr("sub_never_updated").to_string());
+                .unwrap_or_else(|| i18n::tr("sub_never_updated").to_string());
             self.active_sub_row.set_subtitle(&format!(
                 "{}: {}",
-                tr("sub_updated_time"),
+                i18n::tr("sub_updated_time"),
                 updated_time_str
             ));
 
@@ -675,7 +679,7 @@ impl DashboardView {
             }
         } else {
             self.btn_refresh_sub.set_sensitive(false);
-            self.active_sub_row.set_subtitle(tr("no_active_sub"));
+            self.active_sub_row.set_subtitle(i18n::tr("no_active_sub"));
             self.package_traffic_row.set_visible(false);
         }
     }

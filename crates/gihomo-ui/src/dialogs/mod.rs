@@ -1,3 +1,5 @@
+//! Modal dialogs for adding and editing subscription resources.
+
 pub mod add_subscription;
 pub mod edit_subscription;
 

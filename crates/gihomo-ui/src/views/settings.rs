@@ -348,7 +348,7 @@ impl SettingsView {
             let gip = geoip_row.clone();
             let gst = geosite_row.clone();
             glib::MainContext::default().spawn_local(async move {
-                let infos = svc.get_geo_databases().await;
+                let infos = svc.geo_databases().await;
                 for info in &infos {
                     let sub = format_geo_info(info);
                     if info.name == "GeoIP" {
@@ -375,7 +375,7 @@ impl SettingsView {
                 let gst = gst_clone.clone();
                 glib::MainContext::default().spawn_local(async move {
                     let _ = service.update_geo_databases().await;
-                    let infos = service.get_geo_databases().await;
+                    let infos = service.geo_databases().await;
                     for info in &infos {
                         let sub = format_geo_info(info);
                         if info.name == "GeoIP" {
@@ -563,7 +563,7 @@ impl SettingsView {
         let gip = self.geoip_row.clone();
         let gst = self.geosite_row.clone();
         glib::MainContext::default().spawn_local(async move {
-            let infos = service.get_geo_databases().await;
+            let infos = service.geo_databases().await;
             for info in &infos {
                 let sub = format_geo_info(info);
                 if info.name == "GeoIP" {

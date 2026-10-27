@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use crate::i18n::tr;
+use crate::i18n;
 
 pub fn show_edit_subscription_dialog(
     parent: &gtk4::Window,
@@ -14,7 +14,7 @@ pub fn show_edit_subscription_dialog(
     subscription: Subscription,
 ) {
     let dialog = adw::Dialog::builder()
-        .title(tr("dialog_edit_sub_title"))
+        .title(i18n::tr("dialog_edit_sub_title"))
         .content_width(360)
         .build();
 
@@ -24,7 +24,7 @@ pub fn show_edit_subscription_dialog(
 
     // Cancel Button (Start)
     let cancel_btn = Button::builder()
-        .label(tr("btn_cancel"))
+        .label(i18n::tr("btn_cancel"))
         .css_classes(["flat"])
         .build();
     {
@@ -37,7 +37,7 @@ pub fn show_edit_subscription_dialog(
 
     // Save Button (End, Suggested Action)
     let save_btn = Button::builder()
-        .label(tr("btn_save_sub"))
+        .label(i18n::tr("btn_save_sub"))
         .css_classes(["suggested-action"])
         .build();
     header_bar.pack_end(&save_btn);
@@ -59,7 +59,7 @@ pub fn show_edit_subscription_dialog(
 
     let group = adw::PreferencesGroup::new();
     let name_row = adw::EntryRow::builder()
-        .title(tr("sub_name_row"))
+        .title(i18n::tr("sub_name_row"))
         .text(&subscription.name)
         .show_apply_button(false)
         .build();
@@ -69,7 +69,7 @@ pub fn show_edit_subscription_dialog(
     let url_row = match &subscription.source {
         SubscriptionSource::Url(url) => {
             let row = adw::EntryRow::builder()
-                .title(tr("sub_url_row"))
+                .title(i18n::tr("sub_url_row"))
                 .text(url)
                 .show_apply_button(false)
                 .build();
@@ -79,7 +79,7 @@ pub fn show_edit_subscription_dialog(
         SubscriptionSource::LocalFile(path) => {
             let path = PathBuf::from(path);
             let file_row = adw::ActionRow::builder()
-                .title(tr("file_chooser_row"))
+                .title(i18n::tr("file_chooser_row"))
                 .subtitle(path.to_string_lossy())
                 .title_lines(1)
                 .subtitle_lines(1)
@@ -104,7 +104,7 @@ pub fn show_edit_subscription_dialog(
                     filter.add_pattern("*.yaml");
                     filter.add_pattern("*.yml");
                     let file_dialog = FileDialog::builder()
-                        .title(tr("file_chooser_row"))
+                        .title(i18n::tr("file_chooser_row"))
                         .modal(true)
                         .default_filter(&filter)
                         .build();
@@ -136,14 +136,15 @@ pub fn show_edit_subscription_dialog(
                 .filter(|l| !l.trim().is_empty() && !l.trim().starts_with('#'))
                 .count();
             let row = adw::ActionRow::builder()
-                .title(tr("tab_share_links"))
-                .subtitle(format!("{} {}", count, tr("sub_nodes_count")))
+                .title(i18n::tr("tab_share_links"))
+                .subtitle(format!("{} {}", count, i18n::tr("sub_nodes_count")))
                 .title_lines(1)
                 .subtitle_lines(1)
                 .build();
             group.add(&row);
             None
         }
+        _ => None,
     };
 
     let error_label = gtk4::Label::builder()
@@ -173,7 +174,7 @@ pub fn show_edit_subscription_dialog(
         save_btn.connect_clicked(move |btn| {
             let name = name_row.text().trim().to_string();
             if name.is_empty() {
-                error_label.set_label(tr("sub_name_required"));
+                error_label.set_label(i18n::tr("sub_name_required"));
                 error_label.set_visible(true);
                 return;
             }
@@ -181,7 +182,7 @@ pub fn show_edit_subscription_dialog(
             let source = if let Some(ref url_row) = url_row {
                 let url = url_row.text().trim().to_string();
                 if url.is_empty() {
-                    error_label.set_label(tr("sub_url_required"));
+                    error_label.set_label(i18n::tr("sub_url_required"));
                     error_label.set_visible(true);
                     return;
                 }
@@ -191,14 +192,14 @@ pub fn show_edit_subscription_dialog(
             } else if let SubscriptionSource::ShareLinks(ref raw) = subscription_source {
                 SubscriptionSource::ShareLinks(raw.clone())
             } else {
-                error_label.set_label(tr("file_chooser_none"));
+                error_label.set_label(i18n::tr("file_chooser_none"));
                 error_label.set_visible(true);
                 return;
             };
 
             error_label.set_visible(false);
             btn.set_sensitive(false);
-            btn.set_label(tr("sub_saving"));
+            btn.set_label(i18n::tr("sub_saving"));
             let service = service.clone();
             let dialog = dialog.clone();
             let btn = btn.clone();
@@ -213,7 +214,7 @@ pub fn show_edit_subscription_dialog(
                     Err(error) => {
                         error_label.set_label(&error.to_string());
                         error_label.set_visible(true);
-                        btn.set_label(tr("btn_save_sub"));
+                        btn.set_label(i18n::tr("btn_save_sub"));
                         btn.set_sensitive(true);
                     }
                 }

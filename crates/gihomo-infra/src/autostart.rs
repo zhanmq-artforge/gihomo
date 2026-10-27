@@ -1,3 +1,5 @@
+//! System login autostart entry configuration (`.desktop` in autostart directory).
+
 use std::fs;
 use std::io;
 use std::path::PathBuf;

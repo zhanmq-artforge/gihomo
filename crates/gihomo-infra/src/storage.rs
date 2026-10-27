@@ -1,3 +1,5 @@
+//! Storage manager and disk file orchestration for Gihomo.
+
 use crate::error::InfraError;
 use gihomo_core::{parse_user_info_header, Subscription, SubscriptionUserInfo};
 use reqwest::header::{HeaderMap, HeaderValue, IF_NONE_MATCH, USER_AGENT};
@@ -21,7 +23,9 @@ impl Default for StorageManager {
     }
 }
 
+/// Result of downloading a remote subscription resource, supporting HTTP 304 Not Modified.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum RemoteSubscriptionDownload {
     Modified {
         content: String,
@@ -90,7 +94,8 @@ impl StorageManager {
         self.mihomo_dir().join("geosite.dat")
     }
 
-    pub async fn get_geo_databases(&self) -> Vec<gihomo_core::GeoDatabaseInfo> {
+    /// Inspects and lists local GeoIP and GeoSite database metadata.
+    pub async fn geo_databases(&self) -> Vec<gihomo_core::GeoDatabaseInfo> {
         let mut list = Vec::new();
 
         // 1. GeoIP
@@ -152,10 +157,10 @@ impl StorageManager {
 
         let resp = client.get(url).send().await?;
         if !resp.status().is_success() {
-            return Err(InfraError::DownloadFailed(
-                resp.status().as_u16(),
-                format!("HTTP error {}", resp.status()),
-            ));
+            return Err(InfraError::DownloadFailed {
+                status: resp.status().as_u16(),
+                message: format!("HTTP error {}", resp.status()),
+            });
         }
 
         let bytes = resp.bytes().await?;
@@ -294,10 +299,10 @@ impl StorageManager {
         }
 
         if !resp.status().is_success() {
-            return Err(InfraError::DownloadFailed(
-                resp.status().as_u16(),
-                resp.text().await.unwrap_or_default(),
-            ));
+            return Err(InfraError::DownloadFailed {
+                status: resp.status().as_u16(),
+                message: resp.text().await.unwrap_or_default(),
+            });
         }
 
         let content = resp.text().await?;
@@ -317,14 +322,11 @@ impl StorageManager {
             return Vec::new();
         };
 
-        content
-            .lines()
-            .rev()
-            .take(max_lines)
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .map(|line| {
+        let lines: Vec<&str> = content.lines().collect();
+        let start = lines.len().saturating_sub(max_lines);
+        lines[start..]
+            .iter()
+            .map(|&line| {
                 let lower = line.to_lowercase();
                 let level = if lower.contains("error") || lower.contains("fatal") {
                     "error"

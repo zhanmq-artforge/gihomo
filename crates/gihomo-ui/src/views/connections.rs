@@ -5,7 +5,7 @@ use gtk4::{Button, Label, Orientation, ScrolledWindow, SearchEntry};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use crate::i18n::tr;
+use crate::i18n;
 
 const CONN_PAGE_SIZE: usize = 80;
 const CONN_LOAD_MORE_STEP: usize = 80;
@@ -50,7 +50,7 @@ impl ConnectionsView {
         top_bar.set_hexpand(true);
 
         let search_entry = SearchEntry::builder()
-            .placeholder_text(tr("conn_search_placeholder"))
+            .placeholder_text(i18n::tr("conn_search_placeholder"))
             .hexpand(true)
             .build();
 
@@ -58,14 +58,14 @@ impl ConnectionsView {
 
         let refresh_btn = Button::builder()
             .icon_name("view-refresh-symbolic")
-            .tooltip_text(tr("tooltip_refresh_conn"))
+            .tooltip_text(i18n::tr("tooltip_refresh_conn"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
 
         let close_all_btn = Button::builder()
             .icon_name("network-offline-symbolic")
-            .tooltip_text(tr("tooltip_close_all_conn"))
+            .tooltip_text(i18n::tr("tooltip_close_all_conn"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat", "destructive-action"])
             .sensitive(false)
@@ -83,8 +83,8 @@ impl ConnectionsView {
         // 2. Empty Status Page
         let status_page = adw::StatusPage::builder()
             .icon_name("network-idle-symbolic")
-            .title(tr("conn_empty_title"))
-            .description(tr("conn_empty_desc"))
+            .title(i18n::tr("conn_empty_title"))
+            .description(i18n::tr("conn_empty_desc"))
             .vexpand(true)
             .build();
 
@@ -94,7 +94,7 @@ impl ConnectionsView {
 
         // 4. Load more button
         let load_more_btn = Button::builder()
-            .label(tr("btn_load_more_conn"))
+            .label(i18n::tr("btn_load_more_conn"))
             .css_classes(["suggested-action", "pill"])
             .halign(gtk4::Align::Center)
             .margin_top(12)
@@ -119,7 +119,7 @@ impl ConnectionsView {
         toolbar_view.set_content(Some(&scrolled));
 
         let page = adw::NavigationPage::builder()
-            .title(tr("tab_connections"))
+            .title(i18n::tr("tab_connections"))
             .tag("connections")
             .child(&toolbar_view)
             .build();
@@ -222,11 +222,11 @@ impl ConnectionsView {
                 };
 
                 let dialog = adw::AlertDialog::new(
-                    Some(tr("dialog_close_all_conn_title")),
-                    Some(tr("dialog_close_all_conn_body")),
+                    Some(i18n::tr("dialog_close_all_conn_title")),
+                    Some(i18n::tr("dialog_close_all_conn_body")),
                 );
-                dialog.add_response("cancel", tr("btn_cancel"));
-                dialog.add_response("close", tr("btn_close_all_confirm"));
+                dialog.add_response("cancel", i18n::tr("btn_cancel"));
+                dialog.add_response("close", i18n::tr("btn_close_all_confirm"));
                 dialog.set_default_response(Some("cancel"));
                 dialog.set_response_appearance("close", adw::ResponseAppearance::Destructive);
 
@@ -242,12 +242,12 @@ impl ConnectionsView {
                             if let Err(e) = service.close_all_connections().await {
                                 service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
                                     "{}: {}",
-                                    tr("toast_close_conn_failed"),
+                                    i18n::tr("toast_close_conn_failed"),
                                     e
                                 )));
                             } else {
                                 service.emit_event(gihomo_app::AppEvent::Notification(
-                                    tr("toast_close_all_conn_success").to_string(),
+                                    i18n::tr("toast_close_all_conn_success").to_string(),
                                 ));
                                 if let Some(view) = v_clone.upgrade() {
                                     view.fetch_connections();
@@ -273,7 +273,7 @@ impl ConnectionsView {
         let view_weak = self.downgrade_handle();
 
         glib::MainContext::default().spawn_local(async move {
-            let res = service.get_connections().await;
+            let res = service.connections().await;
             if let Some(view) = view_weak.upgrade() {
                 view.is_fetching.set(false);
                 view.spinner.stop();
@@ -367,9 +367,9 @@ impl ConnectionsView {
         };
 
         let base_count_str = if query.is_empty() {
-            tr("conn_count_badge").replace("{count}", &total_count.to_string())
+            i18n::tr("conn_count_badge").replace("{count}", &total_count.to_string())
         } else {
-            tr("conn_count_filtered")
+            i18n::tr("conn_count_filtered")
                 .replace("{filtered}", &total_filtered.to_string())
                 .replace("{total}", &total_count.to_string())
         };
@@ -378,7 +378,7 @@ impl ConnectionsView {
             format!(
                 "{} ({})",
                 base_count_str,
-                tr("conn_showing_top").replace("{count}", &display_items.len().to_string())
+                i18n::tr("conn_showing_top").replace("{count}", &display_items.len().to_string())
             )
         } else {
             base_count_str
@@ -387,7 +387,7 @@ impl ConnectionsView {
         let desc_text = format!("{} · ↑ {}  ↓ {}", count_str, up_total_str, down_total_str);
 
         let group = adw::PreferencesGroup::builder()
-            .title(tr("conn_list_title"))
+            .title(i18n::tr("conn_list_title"))
             .description(&desc_text)
             .build();
 
@@ -410,9 +410,9 @@ impl ConnectionsView {
                 "{}[{}] {}: {} | {}: {}",
                 proc_tag,
                 conn.metadata.network.to_uppercase(),
-                tr("conn_rule_label"),
+                i18n::tr("conn_rule_label"),
                 conn.rule,
-                tr("conn_chain_label"),
+                i18n::tr("conn_chain_label"),
                 if chain_str.is_empty() {
                     "-"
                 } else {
@@ -434,7 +434,7 @@ impl ConnectionsView {
             // Suffix 2: Close single connection button
             let close_btn = Button::builder()
                 .icon_name("window-close-symbolic")
-                .tooltip_text(tr("tooltip_close_single_conn"))
+                .tooltip_text(i18n::tr("tooltip_close_single_conn"))
                 .css_classes(["flat", "destructive-action"])
                 .valign(gtk4::Align::Center)
                 .build();
@@ -461,7 +461,7 @@ impl ConnectionsView {
 
             // Sub-row 1: Source Address
             let src_row = adw::ActionRow::builder()
-                .title(tr("conn_src_addr"))
+                .title(i18n::tr("conn_src_addr"))
                 .subtitle(format!(
                     "{}:{}",
                     conn.metadata.source_ip, conn.metadata.source_port
@@ -473,7 +473,7 @@ impl ConnectionsView {
 
             // Sub-row 2: Destination IP & Port
             let dst_row = adw::ActionRow::builder()
-                .title(tr("conn_dst_addr"))
+                .title(i18n::tr("conn_dst_addr"))
                 .subtitle(format!(
                     "{}:{}",
                     conn.metadata.destination_ip, conn.metadata.destination_port
@@ -486,7 +486,7 @@ impl ConnectionsView {
             // Sub-row 3: Full Process Path if available
             if !conn.metadata.process_path.is_empty() {
                 let proc_row = adw::ActionRow::builder()
-                    .title(tr("conn_proc_path"))
+                    .title(i18n::tr("conn_proc_path"))
                     .subtitle(&conn.metadata.process_path)
                     .title_lines(1)
                     .subtitle_lines(1)
@@ -501,7 +501,7 @@ impl ConnectionsView {
                 format!("{} ({})", conn.rule, conn.rule_payload)
             };
             let rule_row = adw::ActionRow::builder()
-                .title(tr("conn_rule_detail"))
+                .title(i18n::tr("conn_rule_detail"))
                 .subtitle(rule_detail)
                 .title_lines(1)
                 .subtitle_lines(1)
@@ -511,7 +511,7 @@ impl ConnectionsView {
             // Sub-row 5: Outbound chains
             if !conn.chains.is_empty() {
                 let chain_row = adw::ActionRow::builder()
-                    .title(tr("conn_chain_detail"))
+                    .title(i18n::tr("conn_chain_detail"))
                     .subtitle(conn.chains.join(" → "))
                     .title_lines(1)
                     .subtitle_lines(1)
@@ -522,7 +522,7 @@ impl ConnectionsView {
             // Sub-row 6: Start time
             if !conn.start.is_empty() {
                 let start_row = adw::ActionRow::builder()
-                    .title(tr("conn_start_time"))
+                    .title(i18n::tr("conn_start_time"))
                     .subtitle(&conn.start)
                     .title_lines(1)
                     .subtitle_lines(1)
@@ -537,8 +537,11 @@ impl ConnectionsView {
 
         if total_filtered > visible_limit {
             let remaining = total_filtered - visible_limit;
-            self.load_more_btn
-                .set_label(&format!("{} ({})", tr("btn_load_more_conn"), remaining));
+            self.load_more_btn.set_label(&format!(
+                "{} ({})",
+                i18n::tr("btn_load_more_conn"),
+                remaining
+            ));
             self.load_more_btn.set_visible(true);
         } else {
             self.load_more_btn.set_visible(false);
@@ -546,17 +549,17 @@ impl ConnectionsView {
     }
 
     pub fn update_ui_text(&self) {
-        self.page.set_title(tr("tab_connections"));
+        self.page.set_title(i18n::tr("tab_connections"));
         self.search_entry
-            .set_placeholder_text(Some(tr("conn_search_placeholder")));
+            .set_placeholder_text(Some(i18n::tr("conn_search_placeholder")));
         self.refresh_btn
-            .set_tooltip_text(Some(tr("tooltip_refresh_conn")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_refresh_conn")));
         self.close_all_btn
-            .set_tooltip_text(Some(tr("tooltip_close_all_conn")));
-        self.load_more_btn.set_label(tr("btn_load_more_conn"));
-        self.status_page.set_title(tr("conn_empty_title"));
+            .set_tooltip_text(Some(i18n::tr("tooltip_close_all_conn")));
+        self.load_more_btn.set_label(i18n::tr("btn_load_more_conn"));
+        self.status_page.set_title(i18n::tr("conn_empty_title"));
         self.status_page
-            .set_description(Some(tr("conn_empty_desc")));
+            .set_description(Some(i18n::tr("conn_empty_desc")));
 
         self.re_render_cached();
     }

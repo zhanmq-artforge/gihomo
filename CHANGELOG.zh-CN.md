@@ -9,6 +9,33 @@
 
 ---
 
+## [1.2.0] - 2026-10-27
+
+### ⚡ 节点测速图标重构与 Google Rust 规范全套工程落地
+
+#### ⚡ 节点列表与全局测速体验优化
+* **统一采用闪电（`thunderbolt-symbolic`）测速图标**：
+  * **单节点测速**：由原先容易与数据传输混淆的 `network-transmit-receive-symbolic`（双向箭头）改为 GNOME 原生自带的标准闪电图标 `thunderbolt-symbolic`，与主流代理客户端习惯深度契合。
+  * **全局并发测速**：顶部工具栏测速按钮同步升级为 `thunderbolt-symbolic`，彻底消除同图异义困扰。
+
+#### 🛡️ Google Rust 风格指南（Google Rust Style Guide）落地
+* **P0 优先级（安全、健壮性与错误处理）**：
+  * **错误体系强化**：为 `CoreError`、`InfraError`、`AppError` 全面标注 `#[must_use]` 与 `#[non_exhaustive]`，并在模块与变体上补充完整 RustDoc 注释；将 `InfraError::DownloadFailed(u16, String)` 元组变体优化为具名字段 `{ status, message }`。
+  * **解析层强类型错误迁移**：将 `gihomo-core` 解析模块中所有 7 个协议解析函数的返回类型由 `Result<T, String>` 重构为结构化 `Result<T, CoreError>`。
+  * **并发锁毒化（Poisoning）防护**：针对全局多语言状态 `I18N: RwLock<I18nState>` 的所有读写访问封装安全恢复机制（`read_i18n()` / `write_i18n()`），杜绝因局部恐慌导致应用全局死锁崩溃。
+* **P1 优先级（API 契约、类型设计与命名规范）**：
+  * **接口演进保护**：为跨包导出的关键枚举与结构体（`SubscriptionSource`、`KernelStatus`、`RemoteSubscriptionDownload`）标注 `#[non_exhaustive]`，为 `KernelStatus` 显式实现标准 `Display` 特征。
+  * **消除布尔盲区**：在托盘模块中将易混淆的布尔参数重构为状态枚举 `TrayIconState`（`Active` / `Idle` / `Offline`）。
+  * **具名结构体返回**：将批量链接解析函数的匿名元组返回重构为具名结构体 `ParsedShareLinks`。
+  * **标准 Getter 命名重构**：全面重命名 `InfraService`、`MihomoApiClient` 与 `AppService` 的 Getter，移除冗余的 `get_` 前缀（如 `subscriptions()`、`proxies()`、`kernel_version()`、`rules()` 等），严格遵循 Rust API 惯用命名准则。
+* **P2 优先级（代码组织、模块清晰度与引用管理）**：
+  * **废弃宽泛 prelude 与 glob 引用**：移除 `gihomo-ui` 的自定义 `prelude`，各模块及视图改为显式精准导入；统一使用 `i18n::tr(...)` 模块限定调用，避免短标识符命名冲突。
+  * **消除硬编码与魔数**：为后台线程创建超时、窗口默认尺寸等提取显式常量。
+* **P3 优先级（模块文档与算法微调）**：
+  * **模块级文档**：为所有 4 个子 Crate 及核心模块补充 `//!` 级架构设计与职责说明文档。
+  * **日志读取算法优化**：重构内核日志逆序抽取算法，避免无谓的中间 `Vec` 分配与多次反转。
+  * **单元测试断言上下文**：为所有测试断言补充明确的失败排查说明。
+
 ## [1.1.1] - 2026-10-08
 
 ### 🎨 界面细节精细化与仪表盘交互优化

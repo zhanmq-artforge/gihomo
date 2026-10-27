@@ -9,7 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use crate::i18n::tr;
+use crate::i18n;
 
 const MAX_BUFFER_LINES: i32 = 3000;
 const TRIM_CHUNK_LINES: i32 = 200;
@@ -44,7 +44,7 @@ impl LogsView {
         // Auto-scroll toggle
         let auto_scroll_btn = ToggleButton::builder()
             .icon_name("go-down-symbolic")
-            .tooltip_text(tr("tooltip_auto_scroll"))
+            .tooltip_text(i18n::tr("tooltip_auto_scroll"))
             .active(true)
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
@@ -53,7 +53,7 @@ impl LogsView {
         // Copy button
         let copy_btn = Button::builder()
             .icon_name("edit-copy-symbolic")
-            .tooltip_text(tr("tooltip_copy_logs"))
+            .tooltip_text(i18n::tr("tooltip_copy_logs"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
@@ -61,7 +61,7 @@ impl LogsView {
         // Export button
         let export_btn = Button::builder()
             .icon_name("document-save-symbolic")
-            .tooltip_text(tr("tooltip_export_logs"))
+            .tooltip_text(i18n::tr("tooltip_export_logs"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
@@ -69,7 +69,7 @@ impl LogsView {
         // Clear button
         let clear_btn = Button::builder()
             .icon_name("user-trash-symbolic")
-            .tooltip_text(tr("tooltip_clear_logs"))
+            .tooltip_text(i18n::tr("tooltip_clear_logs"))
             .valign(gtk4::Align::Center)
             .css_classes(["flat"])
             .build();
@@ -86,11 +86,11 @@ impl LogsView {
 
         // Log Level DropDown
         let levels = [
-            tr("log_level_all"),
-            tr("log_level_info"),
-            tr("log_level_warn"),
-            tr("log_level_error"),
-            tr("log_level_debug"),
+            i18n::tr("log_level_all"),
+            i18n::tr("log_level_info"),
+            i18n::tr("log_level_warn"),
+            i18n::tr("log_level_error"),
+            i18n::tr("log_level_debug"),
         ];
         let level_dropdown = DropDown::from_strings(&levels);
         level_dropdown.set_selected(0);
@@ -98,7 +98,7 @@ impl LogsView {
 
         // Search filter
         let search_entry = SearchEntry::builder()
-            .placeholder_text(tr("log_search_placeholder"))
+            .placeholder_text(i18n::tr("log_search_placeholder"))
             .valign(gtk4::Align::Center)
             .hexpand(true)
             .build();
@@ -190,7 +190,7 @@ impl LogsView {
         toolbar_view.set_content(Some(&content_box));
 
         let page = adw::NavigationPage::builder()
-            .title(tr("tab_logs"))
+            .title(i18n::tr("tab_logs"))
             .tag("logs")
             .child(&toolbar_view)
             .build();
@@ -295,7 +295,7 @@ impl LogsView {
                 let text = buffer.text(&start, &end, false);
                 if text.trim().is_empty() {
                     service.emit_event(gihomo_app::AppEvent::Notification(
-                        tr("toast_export_logs_empty").to_string(),
+                        i18n::tr("toast_export_logs_empty").to_string(),
                     ));
                     return;
                 }
@@ -303,7 +303,7 @@ impl LogsView {
                     let clipboard = display.clipboard();
                     clipboard.set_text(&text);
                     service.emit_event(gihomo_app::AppEvent::Notification(
-                        tr("toast_copy_logs_success").to_string(),
+                        i18n::tr("toast_copy_logs_success").to_string(),
                     ));
                     copy_btn.set_icon_name("object-select-symbolic");
                     let btn_clone = copy_btn.clone();
@@ -327,7 +327,7 @@ impl LogsView {
                 let text = buffer.text(&start, &end, false);
                 if text.trim().is_empty() {
                     service.emit_event(gihomo_app::AppEvent::Notification(
-                        tr("toast_export_logs_empty").to_string(),
+                        i18n::tr("toast_export_logs_empty").to_string(),
                     ));
                     return;
                 }
@@ -346,7 +346,8 @@ impl LogsView {
 
                 match std::fs::write(&target_path, text.as_bytes()) {
                     Ok(_) => {
-                        let msg = tr("toast_export_logs_success").replace("{filename}", &filename);
+                        let msg =
+                            i18n::tr("toast_export_logs_success").replace("{filename}", &filename);
                         service.emit_event(gihomo_app::AppEvent::Notification(msg));
                         export_btn.set_icon_name("object-select-symbolic");
                         let btn_clone = export_btn.clone();
@@ -360,7 +361,7 @@ impl LogsView {
                     Err(err) => {
                         service.emit_event(gihomo_app::AppEvent::ErrorOccurred(format!(
                             "{}: {}",
-                            tr("toast_export_logs_failed"),
+                            i18n::tr("toast_export_logs_failed"),
                             err
                         )));
                     }
@@ -385,7 +386,7 @@ impl LogsView {
 
         // 1. Preload recent logs from local log file
         glib::MainContext::default().spawn_local(async move {
-            let recent_logs = service.get_recent_kernel_logs(200).await;
+            let recent_logs = service.recent_kernel_logs(200).await;
             if let Some(view) = view_weak.upgrade() {
                 for log in recent_logs {
                     view.append_log_message(&log, false);
@@ -504,25 +505,25 @@ impl LogsView {
     }
 
     pub fn update_ui_text(&self) {
-        self.page.set_title(tr("tab_logs"));
+        self.page.set_title(i18n::tr("tab_logs"));
         self.search_entry
-            .set_placeholder_text(Some(tr("log_search_placeholder")));
+            .set_placeholder_text(Some(i18n::tr("log_search_placeholder")));
         self.auto_scroll_btn
-            .set_tooltip_text(Some(tr("tooltip_auto_scroll")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_auto_scroll")));
         self.copy_btn
-            .set_tooltip_text(Some(tr("tooltip_copy_logs")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_copy_logs")));
         self.export_btn
-            .set_tooltip_text(Some(tr("tooltip_export_logs")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_export_logs")));
         self.clear_btn
-            .set_tooltip_text(Some(tr("tooltip_clear_logs")));
+            .set_tooltip_text(Some(i18n::tr("tooltip_clear_logs")));
 
         let selected = self.level_dropdown.selected();
         let levels = [
-            tr("log_level_all"),
-            tr("log_level_info"),
-            tr("log_level_warn"),
-            tr("log_level_error"),
-            tr("log_level_debug"),
+            i18n::tr("log_level_all"),
+            i18n::tr("log_level_info"),
+            i18n::tr("log_level_warn"),
+            i18n::tr("log_level_error"),
+            i18n::tr("log_level_debug"),
         ];
         let model = gtk4::StringList::new(&levels);
         self.is_updating_dropdown.set(true);
