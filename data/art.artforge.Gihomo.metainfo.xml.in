@@ -29,6 +29,11 @@
   <url type="bugtracker">https://github.com/zhanmq-artforge/gihomo/issues</url>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.3.0" date="2026-11-09">
+      <description>
+        <p>Protocol &amp; Subscription Release: Advanced VLESS protocol support (Reality encryption including mlkem768x25519plus, spider-x, xhttp/splithttp multi-transports, and packet-encoding), robust RFC 3986 URL parsing with pre-split fragment decoding, universal subscription normalization (Clash YAML, Base64 feeds, plaintext share links), and strict compliance with Google Rust Style Guide.</p>
+      </description>
+    </release>
     <release version="1.2.0" date="2026-10-27">
       <description>
         <p>Major engineering &amp; UX release: Full codebase refactoring adhering to Google Rust Style Guide (P0-P3), robust lock poisoning recovery, strongly-typed domain errors, idiomatic Rust API getters, and unified thunderbolt latency test icons across single and batch node testing.</p>

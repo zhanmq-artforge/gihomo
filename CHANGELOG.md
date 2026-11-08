@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-11-09
+
+### 🚀 Advanced VLESS Protocol Support, Universal Subscription Normalization & Google Rust Style Compliance
+
+#### 🌐 Core Protocol Parser Enhancements
+* **Advanced VLESS Implementation**:
+  * **VLESS Encryption**: Added full support for VLESS encryption query parameter (e.g. `encryption=mlkem768x25519plus` post-quantum cryptography suite and `none`), generating the corresponding `encryption` property in Mihomo node YAML.
+  * **Reality Parameters**: Added support for `spx` (`spider-x`) alongside existing `pbk` (`public-key`) and `sid` (`short-id`).
+  * **SNI Resolution Fallback**: Enhanced SNI extraction to fall back across `sni`, `servername`, and `peer`.
+  * **Certificate Verification**: Supported `insecure=1` / `allowInsecure=true` mapping to `skip-cert-verify: true`.
+  * **Multi-Transport & UDP Options**:
+    * Added `xhttp` / `splithttp` transport parsing (`network: xhttp` with nested `xhttp-opts: { path, host, mode }`).
+    * Added `h2` / `http` transport options (`network: h2` with nested `h2-opts`).
+    * Added TCP HTTP pseudo-header support (`headerType=http` with nested `tcp-opts.request`).
+    * Added `packetEncoding=xudp` mapping to `packet-encoding: xudp` and `alpn` list mapping.
+* **RFC 3986 Robust URL Parsing**:
+  * Pre-split URL fragments (`#<name>`) before passing to standard URL parsers, preventing parsing rejections caused by Chinese characters, emojis, pipe symbols (`|`), and unencoded whitespace.
+* **Flexible Base64 Share Link Ingestion**:
+  * Enabled automatic Base64 padding and URL-safe decoding in batch share link processing.
+
+#### 🔄 Universal Subscription Content Normalization
+* **Adaptive Profile Translation (`normalize_subscription_to_yaml`)**:
+  * Added unified subscription pre-processing pipeline that transparently recognizes and converts Base64 share link feeds, plain-text node lists, and standard Clash YAML configurations into fully functional Mihomo configuration profiles.
+  * Seamlessly integrated into `add_url_subscription`, `add_local_subscription`, `update_subscription`, and `edit_subscription`.
+* **Multi-Client User-Agent Emulation**:
+  * Updated remote subscription download User-Agent header with multi-client emulation (`Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.0`), ensuring airports return full node catalogs across varied backend filter rules.
+
+#### 🛡️ Google Rust Style Guide Full Compliance & Optimization
+* **Zero-Allocation Idioms**:
+  * Replaced heap-allocating `String::to_lowercase()` with `str::eq_ignore_ascii_case()` across all protocol and transport matching paths.
+  * Replaced temporary `Value::String` allocation with string slices in `map.contains_key(...)`.
+  * Avoided unnecessary clones by moving owned fallback buffers via `unwrap_or(content)`.
+* **API Documentation Contracts**:
+  * Added explicit `# Errors` doc comments for all public functions returning `Result` in `gihomo-core`.
+  * Annotated pure functions with `#[must_use]`.
+* **Clean Tooling Verification**:
+  * 100% formatted via standard `cargo fmt`.
+  * 0 warnings under `cargo clippy --all-targets -- -D warnings`.
+
 ## [1.2.0] - 2026-10-27
 
 ### ⚡ Latency Test Icon Modernization & Google Rust Style Guide Implementation

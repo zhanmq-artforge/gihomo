@@ -263,7 +263,9 @@ impl StorageManager {
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,
-            HeaderValue::from_static("Clash.Meta; mihomo; art.artforge.Gihomo/0.1.0"),
+            HeaderValue::from_static(
+                "Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.0",
+            ),
         );
 
         if let Some(tag) = etag {

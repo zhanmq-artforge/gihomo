@@ -9,6 +9,45 @@
 
 ---
 
+## [1.3.0] - 2026-11-09
+
+### 🚀 VLESS 全特性解析、通用订阅标准化引擎与 Google Rust 规范全面达标
+
+#### 🌐 核心协议解析增强
+* **完整支持 VLESS 高级特性**：
+  * **VLESS 加密套件**：全面支持 `encryption` 参数（包括后量子密码学 `mlkem768x25519plus` 及 `none` 等），映射生成 Mihomo 节点的 `encryption` 配置项。
+  * **Reality 增强**：支持 `spx`（`spider-x`）爬虫路径参数，与 `pbk`（`public-key`）、`sid`（`short-id`）完整配合。
+  * **SNI 多级回退**：SNI 字段支持在 `sni`、`servername` 与 `peer` 参数间自动回退。
+  * **跳过证书校验**：支持 `insecure=1` 及 `allowInsecure=true` 映射为 `skip-cert-verify: true`。
+  * **多传输层与 UDP 选项**：
+    * 新增 `xhttp` / `splithttp` 传输协议解析（生成 `network: xhttp` 及 `xhttp-opts: { path, host, mode }`）。
+    * 新增 `h2` / `http` 传输支持（生成 `network: h2` 及 `h2-opts`）。
+    * 新增 TCP HTTP 伪装报头解析（`headerType=http` 映射生成 `tcp-opts.request`）。
+    * 新增 `packetEncoding=xudp` 映射生成 `packet-encoding: xudp` 及 ALPN 列表解析。
+* **RFC 3986 高健壮性 URL 解析**：
+  * 在 URL 解析前主动剥离 `#` 锚点片段，彻底消除包含竖线 `|`、Emoji、中文及未转义空格导致的合法节点链接解析失败问题。
+* **弹性 Base64 订阅源自适应解码**：
+  * 批量链接与订阅源解析自动兼容标准 Base64、URL-Safe Base64 及末尾缺补位符（padding）格式。
+
+#### 🔄 通用订阅内容标准化引擎
+* **全格式自适应订阅管线 (`normalize_subscription_to_yaml`)**：
+  * 新增通用订阅标准化处理器，无缝兼容标准 Clash YAML、Base64 编码节点源及纯文本分享链接，并自动拼装为合法的 Mihomo 运行配置。
+  * 深度集成至远程订阅拉取、本地订阅导入、自动更新及编辑订阅等全流程。
+* **机场多客户端兼容 User-Agent**：
+  * 升级订阅请求 User-Agent 报头（`Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.0`），确保各大机场下发全部节点与最新配置。
+
+#### 🛡️ Google Rust 规范达标与性能优化
+* **零额外堆分配优化**：
+  * 协议及传输层类型匹配全面采用 `eq_ignore_ascii_case()`，避免运行时多余的 `to_lowercase()` 字符串堆分配。
+  * Map 检索消除无意义的 `Value::String` 临时构造，直接借用 `&str`。
+  * 订阅回退逻辑改用 `unwrap_or(content)` 移交所有权，避免大文本多余克隆。
+* **API 文档与契约严谨化**：
+  * 为核心库所有返回 `Result` 的公开 API 补充规范的 `# Errors` 错误条件说明文档。
+  * 为纯计算函数标注 `#[must_use]`。
+* **工程质量验证**：
+  * `cargo fmt --check` 全量通过。
+  * `cargo clippy --all-targets -- -D warnings` 零告警通过。
+
 ## [1.2.0] - 2026-10-27
 
 ### ⚡ 节点测速图标重构与 Google Rust 规范全套工程落地

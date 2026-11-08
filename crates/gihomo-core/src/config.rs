@@ -75,6 +75,12 @@ pub fn secure_controller_config(
 }
 
 /// Merges user base settings with subscription content (proxies, proxy-groups, rules, etc.)
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the subscription content is invalid YAML
+/// or empty.
+/// Returns [`CoreError::ConfigMerge`] if the base template is invalid YAML or cannot be merged.
 pub fn merge_subscription_config(
     base_template_yaml: &str,
     subscription_raw_yaml: &str,
@@ -83,10 +89,11 @@ pub fn merge_subscription_config(
     controller_port: u16,
     secret: &str,
 ) -> Result<String, CoreError> {
+    let normalized_sub_yaml = crate::parser::normalize_subscription_to_yaml(subscription_raw_yaml)?;
     let mut base_value: Value = serde_yaml::from_str(base_template_yaml)
         .map_err(|e| CoreError::ConfigMerge(format!("Invalid base template YAML: {}", e)))?;
 
-    let sub_value: Value = serde_yaml::from_str(subscription_raw_yaml).map_err(|e| {
+    let sub_value: Value = serde_yaml::from_str(&normalized_sub_yaml).map_err(|e| {
         CoreError::InvalidSubscription(format!("Subscription is not valid YAML: {}", e))
     })?;
 

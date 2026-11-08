@@ -1,5 +1,5 @@
 Name:           gihomo
-Version:        1.2.0
+Version:        1.3.0
 Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 
@@ -76,6 +76,13 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/polkit-1/rules.d/art.artforge.Gihomo.rules
 
 %changelog
+* Mon Nov 09 2026 zhanmq <zhanmq.china@gmail.com> - 1.3.0-1
+- Comprehensive VLESS protocol parser enhancements: Reality encryption (mlkem768x25519plus), spider-x, xhttp/splithttp transports, HTTP pseudo-header, and packet-encoding
+- Robust RFC 3986 URL parsing with pre-split fragment handling for special characters, pipes, and Chinese labels
+- Universal subscription normalization supporting Clash YAML, Base64 feeds, and plaintext share links
+- Google Rust Style Guide full compliance: zero-allocation comparisons, idiomatic error contracts, and zero clippy warnings
+- Multi-client User-Agent emulation for enhanced airport subscription compatibility
+
 * Tue Oct 27 2026 zhanmq <zhanmq.china@gmail.com> - 1.2.0-1
 - Unified single-node and concurrent batch latency test buttons with thunderbolt-symbolic icon
 - Comprehensive codebase refactoring following the Google Rust Style Guide (P0-P3)

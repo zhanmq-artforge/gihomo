@@ -165,8 +165,8 @@ cargo run
 #### Debian / Ubuntu (`.deb`)
 ```bash
 ./scripts/package-deb.sh
-# Generated artifact: dist/gihomo_1.1.0_amd64.deb
-sudo dpkg -i dist/gihomo_1.1.0_amd64.deb
+# Generated artifact: dist/gihomo_1.3.0_amd64.deb
+sudo dpkg -i dist/gihomo_1.3.0_amd64.deb
 ```
 
 #### Fedora / RHEL (`.rpm`)

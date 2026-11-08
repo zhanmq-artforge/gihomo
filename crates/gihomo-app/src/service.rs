@@ -4,8 +4,9 @@ use crate::error::AppError;
 use crate::event::AppEvent;
 use chrono::Utc;
 use gihomo_core::{
-    generate_base_config, merge_subscription_config, ConnectionsSnapshot, GeoDatabaseInfo,
-    KernelStatus, LogMessage, ProxyGroup, RuleItem, RuleProvider, Subscription, SubscriptionSource,
+    generate_base_config, merge_subscription_config, normalize_subscription_to_yaml,
+    ConnectionsSnapshot, GeoDatabaseInfo, KernelStatus, LogMessage, ProxyGroup, RuleItem,
+    RuleProvider, Subscription, SubscriptionSource,
 };
 use gihomo_infra::{
     KernelManager, MihomoApiClient, RemoteSubscriptionDownload, StorageManager, SystemProxyManager,
@@ -283,8 +284,11 @@ impl AppService {
                 sub.user_info = user_info;
                 sub.updated_at = Some(Utc::now());
 
+                let normalized_content =
+                    normalize_subscription_to_yaml(&content).unwrap_or(content);
+
                 self.storage
-                    .save_subscription_content(&sub.id, &content)
+                    .save_subscription_content(&sub.id, &normalized_content)
                     .await
                     .map_err(|e| format!("保存订阅内容失败: {}", e))?;
 
@@ -329,8 +333,9 @@ impl AppService {
             .map_err(|e| format!("读取本地文件失败: {}", e))?;
 
         let sub = Subscription::new_local(name, path.to_string_lossy().to_string());
+        let normalized_content = normalize_subscription_to_yaml(&content).unwrap_or(content);
         self.storage
-            .save_subscription_content(&sub.id, &content)
+            .save_subscription_content(&sub.id, &normalized_content)
             .await
             .map_err(|e| format!("保存订阅内容失败: {}", e))?;
 
@@ -505,8 +510,11 @@ impl AppService {
                         }
                         sub.updated_at = Some(Utc::now());
 
+                        let normalized_content =
+                            normalize_subscription_to_yaml(&content).unwrap_or(content);
+
                         self.storage
-                            .save_subscription_content(&sub.id, &content)
+                            .save_subscription_content(&sub.id, &normalized_content)
                             .await
                             .map_err(|e| format!("保存订阅失败: {}", e))?;
                         true
@@ -639,7 +647,11 @@ impl AppService {
                             etag,
                             user_info,
                         } => {
-                            self.storage.save_subscription_content(id, &content).await?;
+                            let normalized_content =
+                                normalize_subscription_to_yaml(&content).unwrap_or(content);
+                            self.storage
+                                .save_subscription_content(id, &normalized_content)
+                                .await?;
                             subscription.etag = etag;
                             subscription.user_info = user_info;
                         }
@@ -654,7 +666,11 @@ impl AppService {
                     let content = tokio::fs::read_to_string(path)
                         .await
                         .map_err(|error| AppError::from(error.to_string()))?;
-                    self.storage.save_subscription_content(id, &content).await?;
+                    let normalized_content =
+                        normalize_subscription_to_yaml(&content).unwrap_or(content);
+                    self.storage
+                        .save_subscription_content(id, &normalized_content)
+                        .await?;
                     subscription.etag = None;
                     subscription.user_info = None;
                 }

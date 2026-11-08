@@ -16,6 +16,6 @@ pub use model::{
     SubscriptionUserInfo, TrafficStats, TunConfig,
 };
 pub use parser::{
-    decode_base64_flexible, generate_profile_from_proxies, parse_share_links,
-    parse_single_share_link, ParsedProxyNode, ParsedShareLinks,
+    decode_base64_flexible, generate_profile_from_proxies, normalize_subscription_to_yaml,
+    parse_share_links, parse_single_share_link, ParsedProxyNode, ParsedShareLinks,
 };

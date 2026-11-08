@@ -21,7 +21,12 @@ pub struct ParsedProxyNode {
     pub raw_yaml: Value,
 }
 
-/// Decodes base64 string flexibly (standard or url-safe, with or without padding)
+/// Decodes a base64 string flexibly (standard or URL-safe, with or without padding).
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the input is not valid Base64
+/// or if the decoded bytes cannot be parsed as valid UTF-8.
 pub fn decode_base64_flexible(input: &str) -> Result<String, CoreError> {
     let s = input.trim().replace(['\n', '\r', ' '], "");
     let bytes = STANDARD
@@ -61,7 +66,12 @@ pub fn percent_decode(input: &str) -> String {
     String::from_utf8_lossy(&bytes).to_string()
 }
 
-/// Parses a Shadowsocks (`ss://`) share link
+/// Parses a Shadowsocks (`ss://`) share link into a [`ParsedProxyNode`].
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the link lacks the `ss://` prefix,
+/// has invalid base64 encoding, or is missing required host/port/cipher/password fields.
 pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
     let without_scheme = raw
@@ -142,7 +152,12 @@ pub fn parse_ss(link: &str) -> Result<ParsedProxyNode, CoreError> {
     })
 }
 
-/// Parses a VMess (`vmess://`) share link (standard V2RayN Base64 JSON)
+/// Parses a VMess (`vmess://`) share link (standard V2RayN Base64 JSON) into a [`ParsedProxyNode`].
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the link lacks the `vmess://` prefix,
+/// base64 decoding fails, JSON parsing fails, or required fields are missing.
 pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
     let b64 = raw
@@ -333,11 +348,22 @@ pub fn parse_vmess(link: &str) -> Result<ParsedProxyNode, CoreError> {
     })
 }
 
-/// Parses a VLESS (`vless://`) share link
+/// Parses a VLESS (`vless://`) share link into a [`ParsedProxyNode`].
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the URL is invalid, missing a UUID
+/// or server host, or fails to parse.
 pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
+    // Split fragment beforehand to prevent RFC 3986 violation on illegal chars like '|', emojis, spaces
+    let (url_part, raw_fragment) = match raw.split_once('#') {
+        Some((u, f)) => (u.trim(), Some(f.trim())),
+        None => (raw, None),
+    };
+
     let parsed_url =
-        Url::parse(raw).map_err(|e| invalid_sub(format!("VLESS URL 解析失败: {}", e)))?;
+        Url::parse(url_part).map_err(|e| invalid_sub(format!("VLESS URL 解析失败: {}", e)))?;
 
     let uuid = parsed_url.username().to_string();
     if uuid.is_empty() {
@@ -351,30 +377,56 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
 
     let port = parsed_url.port().unwrap_or(443);
 
-    let tag = parsed_url
-        .fragment()
-        .map(percent_decode)
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| format!("VLESS - {}:{}", server, port));
-
     let mut query_map = std::collections::HashMap::new();
     for (k, v) in parsed_url.query_pairs() {
         query_map.insert(k.to_string(), v.to_string());
     }
 
-    let net = query_map.get("type").map(|s| s.as_str()).unwrap_or("tcp");
+    let tag = raw_fragment
+        .map(percent_decode)
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| {
+            query_map
+                .get("remarks")
+                .or_else(|| query_map.get("name"))
+                .map(|s| percent_decode(s))
+                .filter(|s| !s.trim().is_empty())
+        })
+        .unwrap_or_else(|| format!("VLESS - {}:{}", server, port));
+
+    let net = query_map
+        .get("type")
+        .or_else(|| query_map.get("network"))
+        .map(|s| s.as_str())
+        .unwrap_or("tcp");
     let security = query_map
         .get("security")
         .map(|s| s.as_str())
         .unwrap_or("none");
     let flow = query_map.get("flow").cloned();
-    let sni = query_map.get("sni").cloned();
+    let sni = query_map
+        .get("sni")
+        .or_else(|| query_map.get("servername"))
+        .or_else(|| query_map.get("peer"))
+        .cloned();
     let pbk = query_map.get("pbk").cloned();
     let sid = query_map.get("sid").cloned();
+    let spx = query_map.get("spx").cloned();
     let fp = query_map.get("fp").cloned();
     let path = query_map.get("path").cloned();
     let host = query_map.get("host").cloned();
     let service_name = query_map.get("serviceName").cloned();
+    let encryption = query_map.get("encryption").cloned();
+    let allow_insecure = query_map
+        .get("allowInsecure")
+        .or_else(|| query_map.get("insecure"))
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    let packet_encoding = query_map
+        .get("packetEncoding")
+        .or_else(|| query_map.get("packet-encoding"))
+        .cloned();
+    let alpn = query_map.get("alpn").cloned();
 
     let mut map = Mapping::new();
     map.insert(
@@ -396,8 +448,21 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
     map.insert(Value::String("uuid".to_string()), Value::String(uuid));
     map.insert(Value::String("udp".to_string()), Value::Bool(true));
 
-    let is_tls = security == "tls" || security == "reality";
+    let is_tls = security.eq_ignore_ascii_case("tls") || security.eq_ignore_ascii_case("reality");
     map.insert(Value::String("tls".to_string()), Value::Bool(is_tls));
+
+    if allow_insecure {
+        map.insert(
+            Value::String("skip-cert-verify".to_string()),
+            Value::Bool(true),
+        );
+    }
+
+    if let Some(enc) = encryption {
+        if !enc.trim().is_empty() {
+            map.insert(Value::String("encryption".to_string()), Value::String(enc));
+        }
+    }
 
     if let Some(f) = flow {
         if !f.is_empty() {
@@ -420,7 +485,28 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
         }
     }
 
-    if security == "reality" {
+    if let Some(pe) = packet_encoding {
+        if !pe.is_empty() {
+            map.insert(
+                Value::String("packet-encoding".to_string()),
+                Value::String(pe),
+            );
+        }
+    }
+
+    if let Some(a) = alpn {
+        let parts: Vec<Value> = a
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .map(|s| Value::String(s.to_string()))
+            .collect();
+        if !parts.is_empty() {
+            map.insert(Value::String("alpn".to_string()), Value::Sequence(parts));
+        }
+    }
+
+    if security.eq_ignore_ascii_case("reality") {
         let mut reality_opts = Mapping::new();
         if let Some(p) = pbk {
             reality_opts.insert(Value::String("public-key".to_string()), Value::String(p));
@@ -428,13 +514,21 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
         if let Some(s) = sid {
             reality_opts.insert(Value::String("short-id".to_string()), Value::String(s));
         }
+        if let Some(sx) = spx {
+            if !sx.is_empty() {
+                reality_opts.insert(
+                    Value::String("spider-x".to_string()),
+                    Value::String(percent_decode(&sx)),
+                );
+            }
+        }
         map.insert(
             Value::String("reality-opts".to_string()),
             Value::Mapping(reality_opts),
         );
     }
 
-    if net == "ws" {
+    if net.eq_ignore_ascii_case("ws") || net.eq_ignore_ascii_case("websocket") {
         map.insert(
             Value::String("network".to_string()),
             Value::String("ws".to_string()),
@@ -456,7 +550,7 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
             Value::String("ws-opts".to_string()),
             Value::Mapping(ws_opts),
         );
-    } else if net == "grpc" {
+    } else if net.eq_ignore_ascii_case("grpc") {
         map.insert(
             Value::String("network".to_string()),
             Value::String("grpc".to_string()),
@@ -474,6 +568,96 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
             Value::String("grpc-opts".to_string()),
             Value::Mapping(grpc_opts),
         );
+    } else if net.eq_ignore_ascii_case("xhttp") || net.eq_ignore_ascii_case("splithttp") {
+        map.insert(
+            Value::String("network".to_string()),
+            Value::String("xhttp".to_string()),
+        );
+        let mut xhttp_opts = Mapping::new();
+        let xhttp_path = path.unwrap_or_else(|| "/".to_string());
+        xhttp_opts.insert(Value::String("path".to_string()), Value::String(xhttp_path));
+        if let Some(h) = host {
+            if !h.is_empty() {
+                xhttp_opts.insert(Value::String("host".to_string()), Value::String(h));
+            }
+        }
+        if let Some(m) = query_map.get("mode").or_else(|| query_map.get("xhttpMode")) {
+            if !m.is_empty() {
+                xhttp_opts.insert(Value::String("mode".to_string()), Value::String(m.clone()));
+            }
+        }
+        map.insert(
+            Value::String("xhttp-opts".to_string()),
+            Value::Mapping(xhttp_opts),
+        );
+    } else if net.eq_ignore_ascii_case("h2") || net.eq_ignore_ascii_case("http") {
+        map.insert(
+            Value::String("network".to_string()),
+            Value::String("h2".to_string()),
+        );
+        let mut h2_opts = Mapping::new();
+        if let Some(p) = path {
+            if !p.is_empty() {
+                h2_opts.insert(Value::String("path".to_string()), Value::String(p));
+            }
+        }
+        if let Some(h) = host {
+            if !h.is_empty() {
+                h2_opts.insert(
+                    Value::String("host".to_string()),
+                    Value::Sequence(vec![Value::String(h)]),
+                );
+            }
+        }
+        map.insert(
+            Value::String("h2-opts".to_string()),
+            Value::Mapping(h2_opts),
+        );
+    } else if net.eq_ignore_ascii_case("tcp") {
+        if let Some(header_type) = query_map
+            .get("headerType")
+            .or_else(|| query_map.get("header-type"))
+        {
+            if header_type.eq_ignore_ascii_case("http") {
+                let mut tcp_opts = Mapping::new();
+                let mut req_map = Mapping::new();
+                if let Some(p) = path {
+                    if !p.is_empty() {
+                        req_map.insert(
+                            Value::String("path".to_string()),
+                            Value::Sequence(vec![Value::String(p)]),
+                        );
+                    }
+                }
+                if let Some(h) = host {
+                    if !h.is_empty() {
+                        let mut headers = Mapping::new();
+                        headers.insert(
+                            Value::String("Host".to_string()),
+                            Value::Sequence(vec![Value::String(h)]),
+                        );
+                        req_map.insert(
+                            Value::String("headers".to_string()),
+                            Value::Mapping(headers),
+                        );
+                    }
+                }
+                tcp_opts.insert(
+                    Value::String("type".to_string()),
+                    Value::String("http".to_string()),
+                );
+                if !req_map.is_empty() {
+                    tcp_opts.insert(
+                        Value::String("request".to_string()),
+                        Value::Mapping(req_map),
+                    );
+                }
+                map.insert(
+                    Value::String("tcp-opts".to_string()),
+                    Value::Mapping(tcp_opts),
+                );
+            }
+        }
     }
 
     Ok(ParsedProxyNode {
@@ -485,11 +669,21 @@ pub fn parse_vless(link: &str) -> Result<ParsedProxyNode, CoreError> {
     })
 }
 
-/// Parses a Trojan (`trojan://`) share link
+/// Parses a Trojan (`trojan://`) share link into a [`ParsedProxyNode`].
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the URL is invalid, missing a password
+/// or server host.
 pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
+    let (url_part, raw_fragment) = match raw.split_once('#') {
+        Some((u, f)) => (u.trim(), Some(f.trim())),
+        None => (raw, None),
+    };
+
     let parsed_url =
-        Url::parse(raw).map_err(|e| invalid_sub(format!("Trojan URL 解析失败: {}", e)))?;
+        Url::parse(url_part).map_err(|e| invalid_sub(format!("Trojan URL 解析失败: {}", e)))?;
 
     let password = percent_decode(parsed_url.username());
     if password.is_empty() {
@@ -503,19 +697,27 @@ pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, CoreError> {
 
     let port = parsed_url.port().unwrap_or(443);
 
-    let tag = parsed_url
-        .fragment()
-        .map(percent_decode)
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| format!("Trojan - {}:{}", server, port));
-
     let mut query_map = std::collections::HashMap::new();
     for (k, v) in parsed_url.query_pairs() {
         query_map.insert(k.to_string(), v.to_string());
     }
 
+    let tag = raw_fragment
+        .map(percent_decode)
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| {
+            query_map
+                .get("remarks")
+                .or_else(|| query_map.get("name"))
+                .map(|s| percent_decode(s))
+                .filter(|s| !s.trim().is_empty())
+        })
+        .unwrap_or_else(|| format!("Trojan - {}:{}", server, port));
+
     let sni = query_map
         .get("sni")
+        .or_else(|| query_map.get("servername"))
+        .or_else(|| query_map.get("peer"))
         .cloned()
         .unwrap_or_else(|| server.clone());
     let allow_insecure = query_map
@@ -563,13 +765,22 @@ pub fn parse_trojan(link: &str) -> Result<ParsedProxyNode, CoreError> {
     })
 }
 
-/// Parses a Hysteria 2 (`hysteria2://` or `hy2://`) share link
+/// Parses a Hysteria 2 (`hysteria2://` or `hy2://`) share link into a [`ParsedProxyNode`].
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the URL is invalid or missing a server host.
 pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
-    let normalized = if let Some(rest) = raw.strip_prefix("hy2://") {
+    let (url_part, raw_fragment) = match raw.split_once('#') {
+        Some((u, f)) => (u.trim(), Some(f.trim())),
+        None => (raw, None),
+    };
+
+    let normalized = if let Some(rest) = url_part.strip_prefix("hy2://") {
         format!("hysteria2://{}", rest)
     } else {
-        raw.to_string()
+        url_part.to_string()
     };
 
     let parsed_url = Url::parse(&normalized)
@@ -583,19 +794,27 @@ pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, CoreError> {
 
     let port = parsed_url.port().unwrap_or(443);
 
-    let tag = parsed_url
-        .fragment()
-        .map(percent_decode)
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| format!("HY2 - {}:{}", server, port));
-
     let mut query_map = std::collections::HashMap::new();
     for (k, v) in parsed_url.query_pairs() {
         query_map.insert(k.to_string(), v.to_string());
     }
 
+    let tag = raw_fragment
+        .map(percent_decode)
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| {
+            query_map
+                .get("remarks")
+                .or_else(|| query_map.get("name"))
+                .map(|s| percent_decode(s))
+                .filter(|s| !s.trim().is_empty())
+        })
+        .unwrap_or_else(|| format!("HY2 - {}:{}", server, port));
+
     let sni = query_map
         .get("sni")
+        .or_else(|| query_map.get("servername"))
+        .or_else(|| query_map.get("peer"))
         .cloned()
         .unwrap_or_else(|| server.clone());
     let insecure = query_map
@@ -653,7 +872,12 @@ pub fn parse_hysteria2(link: &str) -> Result<ParsedProxyNode, CoreError> {
     })
 }
 
-/// Dispatches a single share link to its corresponding protocol parser
+/// Dispatches a single share link to its corresponding protocol parser.
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the protocol scheme is unsupported
+/// or the underlying parser fails.
 pub fn parse_single_share_link(link: &str) -> Result<ParsedProxyNode, CoreError> {
     let raw = link.trim();
     if raw.starts_with("ss://") {
@@ -683,17 +907,42 @@ pub struct ParsedShareLinks {
 /// Parses multi-line share links text and deduplicates node names
 #[must_use]
 pub fn parse_share_links(text: &str) -> ParsedShareLinks {
+    let trimmed = text.trim();
+    // If the input is Base64 encoded containing share links, decode it first
+    let effective_text = if !trimmed.starts_with("ss://")
+        && !trimmed.starts_with("vmess://")
+        && !trimmed.starts_with("vless://")
+        && !trimmed.starts_with("trojan://")
+        && !trimmed.starts_with("hysteria2://")
+        && !trimmed.starts_with("hy2://")
+    {
+        if let Ok(decoded) = decode_base64_flexible(trimmed) {
+            if decoded.contains("://") {
+                decoded
+            } else {
+                trimmed.to_string()
+            }
+        } else {
+            trimmed.to_string()
+        }
+    } else {
+        trimmed.to_string()
+    };
+
     let mut nodes = Vec::new();
     let mut failed_lines = Vec::new();
     let mut seen_names: HashSet<String> = HashSet::new();
 
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("//") {
+    for line in effective_text.lines() {
+        let trimmed_line = line.trim();
+        if trimmed_line.is_empty()
+            || trimmed_line.starts_with('#')
+            || trimmed_line.starts_with("//")
+        {
             continue;
         }
 
-        match parse_single_share_link(trimmed) {
+        match parse_single_share_link(trimmed_line) {
             Ok(mut node) => {
                 // Ensure unique node name within proxies array
                 let base_name = node.name.clone();
@@ -718,7 +967,7 @@ pub fn parse_share_links(text: &str) -> ParsedShareLinks {
                 nodes.push(node);
             }
             Err(e) => {
-                failed_lines.push(format!("{}: {}", trimmed, e));
+                failed_lines.push(format!("{}: {}", trimmed_line, e));
             }
         }
     }
@@ -729,7 +978,57 @@ pub fn parse_share_links(text: &str) -> ParsedShareLinks {
     }
 }
 
-/// Generates a complete, functional Mihomo configuration YAML from parsed proxy nodes
+/// Normalizes any subscription content (Clash YAML, Base64 share links, or plain text share links)
+/// into a valid, standard Clash/Mihomo YAML configuration profile string.
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if the subscription content is empty.
+pub fn normalize_subscription_to_yaml(content: &str) -> Result<String, CoreError> {
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        return Err(invalid_sub("订阅内容为空"));
+    }
+
+    // 1. If it's already valid YAML containing proxies or proxy-providers, preserve it directly
+    if let Ok(val) = serde_yaml::from_str::<Value>(trimmed) {
+        if let Some(map) = val.as_mapping() {
+            let has_proxies = map.contains_key("proxies");
+            let has_providers = map.contains_key("proxy-providers");
+            if has_proxies || has_providers {
+                return Ok(trimmed.to_string());
+            }
+        }
+    }
+
+    // 2. Try Base64 decoding
+    if let Ok(decoded) = decode_base64_flexible(trimmed) {
+        if decoded.contains("://") {
+            let parsed = parse_share_links(&decoded);
+            if !parsed.nodes.is_empty() {
+                return generate_profile_from_proxies(&parsed.nodes);
+            }
+        }
+    }
+
+    // 3. Try plain text share links
+    if trimmed.contains("://") {
+        let parsed = parse_share_links(trimmed);
+        if !parsed.nodes.is_empty() {
+            return generate_profile_from_proxies(&parsed.nodes);
+        }
+    }
+
+    // 4. Fallback: return original content to let YAML parser handle or report errors
+    Ok(trimmed.to_string())
+}
+
+/// Generates a complete, functional Mihomo configuration YAML from parsed proxy nodes.
+///
+/// # Errors
+///
+/// Returns [`CoreError::InvalidSubscription`] if `nodes` is empty.
+/// Returns [`CoreError::ConfigMerge`] if YAML serialization fails.
 pub fn generate_profile_from_proxies(nodes: &[ParsedProxyNode]) -> Result<String, CoreError> {
     if nodes.is_empty() {
         return Err(CoreError::InvalidSubscription(
@@ -920,6 +1219,80 @@ mod tests {
         assert_eq!(node.protocol, "VLESS");
         assert_eq!(node.server, "example.com");
         assert_eq!(node.port, 443);
+    }
+
+    #[test]
+    fn test_parse_vless_with_encryption_reality_and_pipe_in_name() {
+        let link = "vless://dab6ccfe-6fac-41f7-88b3-a68729ccaaf9@taiwan.443ds443.com:443?mode=multi&security=reality&encryption=mlkem768x25519plus&type=tcp&flow=xtls-rprx-vision&pbk=rH2NBg0-Zk1Vak8BLS9O6UG44WarEccy1i2XhYoMQXE&sid=d084a6ef27e0c0&servername=www.apple.com&spx=%2F&fp=edge&insecure=1&packetEncoding=xudp&alpn=h2,http/1.1#🇭🇰香港高速01|BGP|CMCU";
+        let node = parse_vless(link).expect("parse vless with advanced features failed");
+        assert_eq!(node.name, "🇭🇰香港高速01|BGP|CMCU");
+        assert_eq!(node.protocol, "VLESS");
+
+        let yaml_val = node.raw_yaml;
+        assert_eq!(
+            yaml_val.get("encryption").and_then(|v| v.as_str()),
+            Some("mlkem768x25519plus")
+        );
+        assert_eq!(
+            yaml_val.get("servername").and_then(|v| v.as_str()),
+            Some("www.apple.com")
+        );
+        assert_eq!(
+            yaml_val.get("skip-cert-verify").and_then(|v| v.as_bool()),
+            Some(true)
+        );
+        assert_eq!(
+            yaml_val.get("packet-encoding").and_then(|v| v.as_str()),
+            Some("xudp")
+        );
+
+        let reality = yaml_val.get("reality-opts").expect("missing reality-opts");
+        assert_eq!(reality.get("spider-x").and_then(|v| v.as_str()), Some("/"));
+        assert_eq!(
+            reality.get("public-key").and_then(|v| v.as_str()),
+            Some("rH2NBg0-Zk1Vak8BLS9O6UG44WarEccy1i2XhYoMQXE")
+        );
+        assert_eq!(
+            reality.get("short-id").and_then(|v| v.as_str()),
+            Some("d084a6ef27e0c0")
+        );
+    }
+
+    #[test]
+    fn test_parse_vless_xhttp() {
+        let link = "vless://00000000-0000-0000-0000-000000000000@example.com:443?type=xhttp&security=tls&sni=example.com&path=%2Fxhttp-path&host=example.com&mode=packet-up#XHTTP%20Node";
+        let node = parse_vless(link).expect("parse xhttp failed");
+        assert_eq!(node.name, "XHTTP Node");
+        let yaml_val = node.raw_yaml;
+        assert_eq!(
+            yaml_val.get("network").and_then(|v| v.as_str()),
+            Some("xhttp")
+        );
+        let xhttp_opts = yaml_val.get("xhttp-opts").expect("missing xhttp-opts");
+        assert_eq!(
+            xhttp_opts.get("path").and_then(|v| v.as_str()),
+            Some("/xhttp-path")
+        );
+        assert_eq!(
+            xhttp_opts.get("host").and_then(|v| v.as_str()),
+            Some("example.com")
+        );
+        assert_eq!(
+            xhttp_opts.get("mode").and_then(|v| v.as_str()),
+            Some("packet-up")
+        );
+    }
+
+    #[test]
+    fn test_normalize_subscription_to_yaml_base64() {
+        let links = "vless://00000000-0000-0000-0000-000000000000@example.com:443?type=tcp&security=none#Node1\nvless://00000000-0000-0000-0000-000000000001@example.com:443?type=tcp&security=none#Node2";
+        use base64::engine::general_purpose::STANDARD;
+        let b64 = STANDARD.encode(links);
+
+        let yaml = normalize_subscription_to_yaml(&b64).expect("normalize base64 failed");
+        assert!(yaml.contains("proxies:"));
+        assert!(yaml.contains("Node1"));
+        assert!(yaml.contains("Node2"));
     }
 
     #[test]
