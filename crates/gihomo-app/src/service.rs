@@ -10,9 +10,9 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 
 use gihomo_core::{
-    generate_base_config, merge_subscription_config, normalize_subscription_to_yaml,
-    ConnectionsSnapshot, GeoDatabaseInfo, KernelStatus, LogMessage, ProxyGroup, RuleItem,
-    RuleProvider, Subscription, SubscriptionSource,
+    calculate_minimal_group_coverage, generate_base_config, merge_subscription_config,
+    normalize_subscription_to_yaml, ConnectionsSnapshot, GeoDatabaseInfo, KernelStatus, LogMessage,
+    ProxyGroup, RuleItem, RuleProvider, Subscription, SubscriptionSource,
 };
 use gihomo_infra::{
     KernelManager, MihomoApiClient, RemoteSubscriptionDownload, StorageManager, SystemProxyManager,
@@ -976,6 +976,46 @@ impl AppService {
         let _ = self.fetch_proxies().await;
         self.emit_event(AppEvent::Notification(format!("[{}] 测速完成", group)));
         Ok(())
+    }
+
+    /// Test latency for all unique proxy nodes across groups with minimal redundant group queries.
+    pub async fn test_all_nodes_delay(&self) -> Result<usize, AppError> {
+        let groups = self.fetch_proxies().await?;
+        let (groups_to_test, total_unique_nodes) = calculate_minimal_group_coverage(&groups);
+
+        if total_unique_nodes == 0 || groups_to_test.is_empty() {
+            info!("No testable proxy nodes found");
+            self.emit_event(AppEvent::Notification("无可用节点测速".to_string()));
+            return Ok(0);
+        }
+
+        info!(
+            "Testing latency for {} unique nodes using minimal groups: {:?}",
+            total_unique_nodes, groups_to_test
+        );
+
+        self.emit_event(AppEvent::Notification(format!(
+            "正在并发测试全部节点延迟 (共 {} 个)...",
+            total_unique_nodes
+        )));
+
+        for group in &groups_to_test {
+            if let Err(e) = self
+                .api
+                .test_group_delay(group, "http://www.gstatic.com/generate_204", 2500)
+                .await
+            {
+                warn!("Failed testing group delay for {}: {}", group, e);
+            }
+        }
+
+        let _ = self.fetch_proxies().await;
+        self.emit_event(AppEvent::Notification(format!(
+            "全部 {} 个节点测速完成",
+            total_unique_nodes
+        )));
+
+        Ok(total_unique_nodes)
     }
 
     /// Change proxy mode (rule / global / direct)

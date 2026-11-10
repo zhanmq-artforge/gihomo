@@ -42,7 +42,11 @@ fi
 echo "==> 1.1 Ensuring Mihomo kernel for ${NORM_ARCH}..."
 "${PROJECT_ROOT}/scripts/ensure-mihomo.sh" "${NORM_ARCH}"
 
-if command -v rpmbuild &>/dev/null; then
+if command -v cargo-generate-rpm &>/dev/null; then
+    echo "==> 2. Using cargo-generate-rpm to build RPM package..."
+    cargo generate-rpm -p "${PKG_NAME}"
+    find "target/generate-rpm" -name "*.rpm" -exec cp {} "${OUTPUT_DIR}/" \;
+elif command -v rpmbuild &>/dev/null; then
     echo "==> 2. Preparing rpmbuild workspace in ${RPMBUILD_DIR}..."
     rm -rf "${RPMBUILD_DIR}"
     mkdir -p "${RPMBUILD_DIR}"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
@@ -57,10 +61,6 @@ if command -v rpmbuild &>/dev/null; then
 
     echo "==> 4. Copying generated RPM to dist/..."
     find "${RPMBUILD_DIR}/RPMS" -name "*.rpm" -exec cp {} "${OUTPUT_DIR}/" \;
-elif command -v cargo-generate-rpm &>/dev/null; then
-    echo "==> 2. Using cargo-generate-rpm to build RPM package..."
-    cargo generate-rpm --target-arch "${RPM_ARCH}"
-    find "target/generate-rpm" -name "*.rpm" -exec cp {} "${OUTPUT_DIR}/" \;
 else
     echo "==> ⚠️  Neither 'rpmbuild' nor 'cargo-generate-rpm' found."
     echo "    On Ubuntu/Debian:  sudo apt install -y rpm"

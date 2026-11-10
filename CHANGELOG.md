@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-11-10
+
+### 🚀 Batch Latency Test Deduplication & Packaging Enhancements
+
+#### ⚡ Minimal Group Coverage Algorithm for Batch Delay Testing
+* **Deduplicated Node Testing Across Groups ([#10](https://github.com/zhanmq-artforge/gihomo/issues/10))**:
+  * Implemented a greedy set-cover heuristic (`calculate_minimal_group_coverage`) in `gihomo-core` that identifies the minimal subset of proxy groups required to cover 100% of unique real proxy nodes.
+  * Resolved severe duplicate latency testing caused by identical nodes appearing across multiple proxy groups (e.g., `GLOBAL`, `Selector`, `Auto`, `Streaming`).
+  * Filtered out virtual node types (`Direct`, `Reject`, `Selector`, `URLTest`, `Fallback`, etc.) to guarantee only actual outbound remote proxies are tested.
+  * Cut full batch test duration by up to 80%~90% on configurations with many overlapping proxy groups.
+
+#### 🔔 Notification & UI Refresh Consolidation
+* **Consolidated Notification Lifecycle**:
+  * Replaced per-group notification flooding with a single unified start notification (`"Testing latency for all X nodes..."`) and completion notification (`"Latency test completed for all X nodes"`).
+  * Reduced UI topology refreshes (`fetch_proxies()`) from once per group to a single refresh at completion, eliminating UI jitter and redundant API calls.
+
+#### 📦 CI/CD & Automated RPM Packaging
+* **GitHub Actions RPM Packaging**:
+  * Integrated `cargo-generate-rpm` via `taiki-e/install-action` in `.github/workflows/release.yml` across both `amd64` (x86_64) and `arm64` (aarch64) release jobs.
+  * Configured post-installation and post-uninstallation scriptlets in `Cargo.toml` for automated GSettings schema compilation, desktop database updates, icon cache updates, and `cap_net_admin` / `cap_net_bind_service` capability grants for the Mihomo binary.
+
 ## [1.3.1] - 2026-11-10
 
 ### ⚡ Memory Footprint Optimization & Proactive Heap Reclamation

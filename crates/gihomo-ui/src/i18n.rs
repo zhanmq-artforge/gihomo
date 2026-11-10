@@ -1151,7 +1151,18 @@ pub fn localize_notification_for_lang(msg: &str, lang: ResolvedLanguage) -> Stri
         "已成功断开全部网络连接" => {
             "All network connections closed successfully".to_string()
         }
+        "无可用节点测速" => "No testable nodes found".to_string(),
         other => {
+            if let Some(rest) = other.strip_prefix("正在并发测试全部节点延迟 (共 ") {
+                if let Some(count) = rest.strip_suffix(" 个)...") {
+                    return format!("Testing latency for all {} nodes...", count);
+                }
+            }
+            if let Some(rest) = other.strip_prefix("全部 ") {
+                if let Some(count) = rest.strip_suffix(" 个节点测速完成") {
+                    return format!("Latency test completed for all {} nodes", count);
+                }
+            }
             if let Some(rest) = other.strip_prefix("已切换至 [") {
                 if let Some(mode) = rest.strip_suffix("] 模式") {
                     return format!("Switched to [{}] mode", mode);
@@ -1404,6 +1415,21 @@ mod tests {
         assert_eq!(
             localize_notification_for_lang("已切换 [Proxy] -> NodeA", ResolvedLanguage::EnUs),
             "Switched [Proxy] -> NodeA"
+        );
+        assert_eq!(
+            localize_notification_for_lang(
+                "正在并发测试全部节点延迟 (共 42 个)...",
+                ResolvedLanguage::EnUs
+            ),
+            "Testing latency for all 42 nodes..."
+        );
+        assert_eq!(
+            localize_notification_for_lang("全部 42 个节点测速完成", ResolvedLanguage::EnUs),
+            "Latency test completed for all 42 nodes"
+        );
+        assert_eq!(
+            localize_notification_for_lang("无可用节点测速", ResolvedLanguage::EnUs),
+            "No testable nodes found"
         );
     }
 

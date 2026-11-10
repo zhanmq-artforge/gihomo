@@ -72,10 +72,10 @@ echo "==> [4/5] Building AppImage (.AppImage)..."
 # Step 6: Build RPM (.rpm) if tool available
 echo ""
 echo "==> [5/5] Building RPM (.rpm)..."
-if command -v rpmbuild >/dev/null 2>&1 || command -v cargo-generate-rpm >/dev/null 2>&1; then
-    "${PROJECT_ROOT}/scripts/package-rpm.sh" "${RPM_ARCH}" || echo "⚠️ RPM build failed or skipped"
+if command -v cargo-generate-rpm >/dev/null 2>&1 || command -v rpmbuild >/dev/null 2>&1; then
+    "${PROJECT_ROOT}/scripts/package-rpm.sh" "${RPM_ARCH}"
 else
-    echo "⚠️ Skipping RPM build (neither 'rpmbuild' nor 'cargo-generate-rpm' found on host)."
+    echo "⚠️ Skipping RPM build (neither 'cargo-generate-rpm' nor 'rpmbuild' found on host)."
 fi
 
 echo ""

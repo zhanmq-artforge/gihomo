@@ -59,6 +59,11 @@ jobs:
         with:
           targets: ${{ matrix.rust_target }}
 
+      - name: Install Packaging Tools (cargo-generate-rpm)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-generate-rpm
+
       - name: Cache Cargo Dependencies
         uses: Swatinem/rust-cache@v2
         with:

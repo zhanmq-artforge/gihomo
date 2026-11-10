@@ -267,7 +267,7 @@ impl StorageManager {
         headers.insert(
             USER_AGENT,
             HeaderValue::from_static(
-                "Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.1",
+                "Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.2",
             ),
         );
 

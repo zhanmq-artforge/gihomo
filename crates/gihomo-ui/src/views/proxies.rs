@@ -1054,21 +1054,14 @@ impl ProxiesView {
         // Global Batch Ping Button
         {
             let service = self.service.clone();
-            let groups_cache = self.groups_cache.clone();
-            let current_mode = self.current_mode.clone();
             let ping_btn_clone = self.ping_all_btn.clone();
             self.ping_all_btn.connect_clicked(move |_| {
                 ping_btn_clone.set_sensitive(false);
                 let service = service.clone();
-                let groups = groups_cache.borrow().clone();
-                let mode = current_mode.borrow().clone();
                 let btn = ping_btn_clone.clone();
 
-                let target_groups = filter_and_sort_groups(&groups, &mode);
                 glib::MainContext::default().spawn_local(async move {
-                    for g in target_groups {
-                        let _ = service.test_group_delay(&g.name).await;
-                    }
+                    let _ = service.test_all_nodes_delay().await;
                     btn.set_sensitive(true);
                 });
             });

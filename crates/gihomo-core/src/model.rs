@@ -294,3 +294,205 @@ pub struct LogMessage {
     #[serde(default)]
     pub payload: String,
 }
+
+/// Returns whether the proxy node is a virtual/system proxy (e.g. Direct, Reject, Selector, etc.)
+/// rather than a real remote outbound proxy that can be delay-tested.
+#[must_use]
+pub fn is_virtual_node(node_type: &str) -> bool {
+    matches!(
+        node_type,
+        "Direct"
+            | "Reject"
+            | "RejectDrop"
+            | "Pass"
+            | "PassRule"
+            | "Compatible"
+            | "Selector"
+            | "URLTest"
+            | "Fallback"
+            | "LoadBalance"
+    )
+}
+
+/// Computes the minimal set of proxy group names that cover all unique testable proxy nodes.
+///
+/// Uses a greedy set-cover heuristic to minimize redundant delay tests across groups that share
+/// the same underlying nodes. Returns `(selected_group_names, total_unique_node_count)`.
+#[must_use]
+pub fn calculate_minimal_group_coverage<'a>(groups: &'a [ProxyGroup]) -> (Vec<&'a str>, usize) {
+    use std::collections::HashSet;
+
+    let mut all_unique_nodes = HashSet::new();
+    let mut group_node_sets: Vec<(&'a str, HashSet<&'a str>)> = Vec::with_capacity(groups.len());
+
+    for group in groups {
+        let node_set: HashSet<&'a str> = group
+            .nodes
+            .iter()
+            .filter(|node| !is_virtual_node(&node.node_type))
+            .map(|node| node.name.as_str())
+            .collect();
+
+        for &name in &node_set {
+            all_unique_nodes.insert(name);
+        }
+        group_node_sets.push((group.name.as_str(), node_set));
+    }
+
+    let total_unique_count = all_unique_nodes.len();
+    if total_unique_count == 0 {
+        return (Vec::new(), 0);
+    }
+
+    let mut uncovered: HashSet<&'a str> = all_unique_nodes;
+    let mut selected_groups = Vec::new();
+
+    while !uncovered.is_empty() {
+        let mut best_group_idx = None;
+        let mut best_overlap_count = 0;
+        let mut best_total_size = 0;
+
+        for (idx, (_, node_set)) in group_node_sets.iter().enumerate() {
+            let overlap = node_set
+                .iter()
+                .filter(|node| uncovered.contains(*node))
+                .count();
+            if overlap > best_overlap_count
+                || (overlap == best_overlap_count
+                    && overlap > 0
+                    && node_set.len() > best_total_size)
+            {
+                best_overlap_count = overlap;
+                best_total_size = node_set.len();
+                best_group_idx = Some(idx);
+            }
+        }
+
+        match best_group_idx {
+            Some(idx) if best_overlap_count > 0 => {
+                let (group_name, node_set) = &group_node_sets[idx];
+                selected_groups.push(*group_name);
+                for node in node_set {
+                    uncovered.remove(node);
+                }
+            }
+            _ => {
+                break;
+            }
+        }
+    }
+
+    (selected_groups, total_unique_count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mock_node(name: &str, node_type: &str) -> ProxyNode {
+        ProxyNode {
+            name: name.to_string(),
+            node_type: node_type.to_string(),
+            delay: None,
+        }
+    }
+
+    fn mock_group(name: &str, nodes: Vec<ProxyNode>) -> ProxyGroup {
+        ProxyGroup {
+            name: name.to_string(),
+            group_type: "Selector".to_string(),
+            now: String::new(),
+            nodes,
+        }
+    }
+
+    #[test]
+    fn test_is_virtual_node() {
+        assert!(is_virtual_node("Direct"));
+        assert!(is_virtual_node("Reject"));
+        assert!(is_virtual_node("RejectDrop"));
+        assert!(is_virtual_node("Pass"));
+        assert!(is_virtual_node("PassRule"));
+        assert!(is_virtual_node("Compatible"));
+        assert!(is_virtual_node("Selector"));
+        assert!(is_virtual_node("URLTest"));
+        assert!(is_virtual_node("Fallback"));
+        assert!(is_virtual_node("LoadBalance"));
+
+        assert!(!is_virtual_node("Shadowsocks"));
+        assert!(!is_virtual_node("Vmess"));
+        assert!(!is_virtual_node("Vless"));
+        assert!(!is_virtual_node("Trojan"));
+        assert!(!is_virtual_node("Hysteria2"));
+        assert!(!is_virtual_node("WireGuard"));
+    }
+
+    #[test]
+    fn test_calculate_minimal_group_coverage_empty() {
+        let (groups, count) = calculate_minimal_group_coverage(&[]);
+        assert!(groups.is_empty());
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_calculate_minimal_group_coverage_only_virtual() {
+        let groups = vec![mock_group(
+            "GLOBAL",
+            vec![
+                mock_node("DIRECT", "Direct"),
+                mock_node("REJECT", "Reject"),
+                mock_node("ProxyGroup", "Selector"),
+            ],
+        )];
+        let (selected, count) = calculate_minimal_group_coverage(&groups);
+        assert!(selected.is_empty());
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_calculate_minimal_group_coverage_single_super_group() {
+        let groups = vec![
+            mock_group(
+                "GLOBAL",
+                vec![
+                    mock_node("DIRECT", "Direct"),
+                    mock_node("Node-A", "Shadowsocks"),
+                    mock_node("Node-B", "Vmess"),
+                    mock_node("Node-C", "Trojan"),
+                ],
+            ),
+            mock_group(
+                "Proxy",
+                vec![
+                    mock_node("Node-A", "Shadowsocks"),
+                    mock_node("Node-B", "Vmess"),
+                ],
+            ),
+            mock_group("YouTube", vec![mock_node("Node-C", "Trojan")]),
+        ];
+
+        let (selected, count) = calculate_minimal_group_coverage(&groups);
+        assert_eq!(count, 3);
+        assert_eq!(selected, vec!["GLOBAL"]);
+    }
+
+    #[test]
+    fn test_calculate_minimal_group_coverage_disjoint_groups() {
+        let groups = vec![
+            mock_group(
+                "Group1",
+                vec![mock_node("Node-1", "Vless"), mock_node("Node-2", "Vless")],
+            ),
+            mock_group(
+                "Group2",
+                vec![mock_node("Node-3", "Trojan"), mock_node("Node-4", "Trojan")],
+            ),
+        ];
+
+        let (selected, count) = calculate_minimal_group_coverage(&groups);
+        assert_eq!(count, 4);
+        assert_eq!(selected.len(), 2);
+        assert!(selected.contains(&"Group1"));
+        assert!(selected.contains(&"Group2"));
+    }
+}

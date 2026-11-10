@@ -1,5 +1,5 @@
 Name:           gihomo
-Version:        1.3.1
+Version:        1.3.2
 Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 
@@ -76,6 +76,12 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/polkit-1/rules.d/art.artforge.Gihomo.rules
 
 %changelog
+* Tue Nov 10 2026 zhanmq <zhanmq.china@gmail.com> - 1.3.2-1
+- Deduplicated batch proxy node latency testing across groups using minimal set-cover coverage (#10)
+- Consolidated single notification lifecycle and single UI topology refresh during batch latency testing
+- Integrated cargo-generate-rpm into GitHub Actions release workflow for automated RPM packaging
+- Added post-installation and post-uninstallation scriptlets and capabilities in package metadata
+
 * Tue Nov 10 2026 zhanmq <zhanmq.china@gmail.com> - 1.3.1-1
 - Optimized Tokio multi-threaded runtime worker threads to 2 to minimize thread stack and memory allocator arena overhead
 - Integrated proactive glibc heap memory trimming (malloc_trim) on window minimize to system tray, log clearing, and background maintenance
