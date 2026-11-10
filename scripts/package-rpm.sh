@@ -44,8 +44,9 @@ echo "==> 1.1 Ensuring Mihomo kernel for ${NORM_ARCH}..."
 
 if command -v cargo-generate-rpm &>/dev/null; then
     echo "==> 2. Using cargo-generate-rpm to build RPM package..."
-    cargo generate-rpm -p "${PKG_NAME}"
-    find "target/generate-rpm" -name "*.rpm" -exec cp {} "${OUTPUT_DIR}/" \;
+    rm -rf target/generate-rpm
+    cargo generate-rpm
+    find "target/generate-rpm" -name "*.rpm" -exec cp -f {} "${OUTPUT_DIR}/" \;
 elif command -v rpmbuild &>/dev/null; then
     echo "==> 2. Preparing rpmbuild workspace in ${RPMBUILD_DIR}..."
     rm -rf "${RPMBUILD_DIR}"
