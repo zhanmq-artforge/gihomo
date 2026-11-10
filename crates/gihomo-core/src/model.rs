@@ -295,6 +295,63 @@ pub struct LogMessage {
     pub payload: String,
 }
 
+/// User-configurable log retention duration policy for rotating and purging old log files.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum LogRetention {
+    /// Retain logs for 2 hours (debugging / low-disk mode).
+    TwoHours,
+    /// Retain logs for 1 day (standard default).
+    #[default]
+    OneDay,
+    /// Retain logs for 3 days.
+    ThreeDays,
+    /// Retain logs for 7 days.
+    #[serde(alias = "one_week")]
+    SevenDays,
+    /// Retain logs indefinitely without automatic age-based deletion.
+    Unlimited,
+}
+
+impl LogRetention {
+    /// Returns the maximum allowed age before historical log files are pruned, or `None` if unlimited.
+    #[must_use]
+    pub fn max_age(self) -> Option<std::time::Duration> {
+        match self {
+            Self::TwoHours => Some(std::time::Duration::from_secs(2 * 3600)),
+            Self::OneDay => Some(std::time::Duration::from_secs(24 * 3600)),
+            Self::ThreeDays => Some(std::time::Duration::from_secs(3 * 24 * 3600)),
+            Self::SevenDays => Some(std::time::Duration::from_secs(7 * 24 * 3600)),
+            Self::Unlimited => None,
+        }
+    }
+
+    /// Converts to the index used by combo rows in user interface.
+    #[must_use]
+    pub fn to_index(self) -> u32 {
+        match self {
+            Self::TwoHours => 0,
+            Self::OneDay => 1,
+            Self::ThreeDays => 2,
+            Self::SevenDays => 3,
+            Self::Unlimited => 4,
+        }
+    }
+
+    /// Converts a combo row index to the corresponding retention policy.
+    #[must_use]
+    pub fn from_index(idx: u32) -> Self {
+        match idx {
+            0 => Self::TwoHours,
+            1 => Self::OneDay,
+            2 => Self::ThreeDays,
+            3 => Self::SevenDays,
+            _ => Self::Unlimited,
+        }
+    }
+}
+
 /// Returns whether the proxy node is a virtual/system proxy (e.g. Direct, Reject, Selector, etc.)
 /// rather than a real remote outbound proxy that can be delay-tested.
 #[must_use]
@@ -494,5 +551,45 @@ mod tests {
         assert_eq!(selected.len(), 2);
         assert!(selected.contains(&"Group1"));
         assert!(selected.contains(&"Group2"));
+    }
+
+    #[test]
+    fn test_log_retention_indices_and_duration() {
+        assert_eq!(LogRetention::TwoHours.to_index(), 0);
+        assert_eq!(LogRetention::OneDay.to_index(), 1);
+        assert_eq!(LogRetention::ThreeDays.to_index(), 2);
+        assert_eq!(LogRetention::SevenDays.to_index(), 3);
+        assert_eq!(LogRetention::Unlimited.to_index(), 4);
+
+        assert_eq!(LogRetention::from_index(0), LogRetention::TwoHours);
+        assert_eq!(LogRetention::from_index(1), LogRetention::OneDay);
+        assert_eq!(LogRetention::from_index(2), LogRetention::ThreeDays);
+        assert_eq!(LogRetention::from_index(3), LogRetention::SevenDays);
+        assert_eq!(LogRetention::from_index(4), LogRetention::Unlimited);
+        assert_eq!(LogRetention::from_index(999), LogRetention::Unlimited);
+
+        assert_eq!(
+            LogRetention::TwoHours.max_age(),
+            Some(std::time::Duration::from_secs(7200))
+        );
+        assert_eq!(
+            LogRetention::OneDay.max_age(),
+            Some(std::time::Duration::from_secs(86400))
+        );
+        assert_eq!(
+            LogRetention::ThreeDays.max_age(),
+            Some(std::time::Duration::from_secs(3 * 86400))
+        );
+        assert_eq!(
+            LogRetention::SevenDays.max_age(),
+            Some(std::time::Duration::from_secs(7 * 86400))
+        );
+        assert_eq!(LogRetention::Unlimited.max_age(), None);
+
+        // Verify serde serialization and alias deserialization
+        let serialized = serde_json::to_string(&LogRetention::SevenDays).unwrap();
+        assert_eq!(serialized, "\"seven_days\"");
+        let deserialized_alias: LogRetention = serde_json::from_str("\"one_week\"").unwrap();
+        assert_eq!(deserialized_alias, LogRetention::SevenDays);
     }
 }

@@ -200,6 +200,23 @@ impl GihomoApplication {
         tokio::spawn(async move {
             start_auto_update_scheduler(svc_scheduler).await;
         });
+
+        // Launch log maintenance background scheduler
+        let svc_log = service.clone();
+        tokio::spawn(async move {
+            start_log_maintenance_scheduler(svc_log).await;
+        });
+    }
+}
+
+async fn start_log_maintenance_scheduler(service: AppService) {
+    info!("Starting background log maintenance scheduler");
+    loop {
+        let retention = crate::i18n::current_log_retention();
+        if let Err(e) = service.maintain_kernel_logs(retention).await {
+            warn!("Log maintenance error: {}", e);
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(300)).await;
     }
 }
 

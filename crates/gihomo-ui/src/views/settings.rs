@@ -32,7 +32,12 @@ pub struct SettingsView {
     tun_cap_badge: Label,
     btn_auth_tun: Button,
     open_config_btn: Button,
+    logs_group: adw::PreferencesGroup,
+    log_retention_row: adw::ComboRow,
+    is_updating_log_retention: Rc<Cell<bool>>,
+    log_size_row: adw::ActionRow,
     open_logs_btn: Button,
+    clear_logs_btn: Button,
     geo_group: adw::PreferencesGroup,
     geoip_row: adw::ActionRow,
     geosite_row: adw::ActionRow,
@@ -314,10 +319,100 @@ impl SettingsView {
 
         tun_cap_row.add_suffix(&tun_cap_badge);
         tun_cap_row.add_suffix(&btn_auth_tun);
-        tun_cap_row.add_suffix(&open_logs_btn);
         kernel_group.add(&tun_cap_row);
 
-        // Group 4: Geo Database Management
+        // Group 4: Runtime Logs & Retention
+        let logs_group = adw::PreferencesGroup::builder()
+            .title(tr("settings_logs"))
+            .description(tr("settings_logs_desc"))
+            .build();
+
+        let log_retention_row = adw::ComboRow::builder()
+            .title(tr("settings_log_retention"))
+            .subtitle(tr("settings_log_retention_sub"))
+            .build();
+
+        let retention_model = StringList::new(&[
+            tr("log_retention_2h"),
+            tr("log_retention_1d"),
+            tr("log_retention_3d"),
+            tr("log_retention_7d"),
+            tr("log_retention_unlimited"),
+        ]);
+        log_retention_row.set_model(Some(&retention_model));
+        log_retention_row.set_selected(crate::i18n::current_log_retention().to_index());
+
+        let is_updating_log_retention = Rc::new(Cell::new(false));
+        let is_updating_log_retention_clone = is_updating_log_retention.clone();
+
+        let log_size_row = adw::ActionRow::builder()
+            .title(tr("settings_log_size"))
+            .subtitle("...")
+            .build();
+
+        let clear_logs_btn = Button::builder()
+            .label(tr("btn_clear_logs"))
+            .valign(gtk4::Align::Center)
+            .css_classes(["destructive-action"])
+            .build();
+
+        log_size_row.add_suffix(&open_logs_btn);
+        log_size_row.add_suffix(&clear_logs_btn);
+
+        logs_group.add(&log_retention_row);
+        logs_group.add(&log_size_row);
+
+        // Fetch initial log size
+        {
+            let svc = service.clone();
+            let size_row = log_size_row.clone();
+            glib::MainContext::default().spawn_local(async move {
+                let size = svc.kernel_logs_total_size().await;
+                size_row.set_subtitle(&gihomo_core::SubscriptionUserInfo::format_bytes(size));
+            });
+        }
+
+        // Wire Log Retention ComboRow
+        {
+            let service_clone = service.clone();
+            let size_row = log_size_row.clone();
+            let is_updating = is_updating_log_retention_clone;
+            log_retention_row.connect_selected_notify(move |row| {
+                if is_updating.get() {
+                    return;
+                }
+                let selected = row.selected();
+                let retention = gihomo_core::LogRetention::from_index(selected);
+                crate::i18n::set_log_retention(retention);
+
+                let svc = service_clone.clone();
+                let sz_row = size_row.clone();
+                glib::MainContext::default().spawn_local(async move {
+                    let _ = svc.maintain_kernel_logs(retention).await;
+                    let size = svc.kernel_logs_total_size().await;
+                    sz_row.set_subtitle(&gihomo_core::SubscriptionUserInfo::format_bytes(size));
+                });
+            });
+        }
+
+        // Wire Clear Logs Button
+        {
+            let service_clone = service.clone();
+            let size_row = log_size_row.clone();
+            clear_logs_btn.connect_clicked(move |_| {
+                let svc = service_clone.clone();
+                let sz_row = size_row.clone();
+                glib::MainContext::default().spawn_local(async move {
+                    if let Err(e) = svc.clear_all_kernel_logs().await {
+                        tracing::warn!("Failed to clear kernel logs: {}", e);
+                    }
+                    let size = svc.kernel_logs_total_size().await;
+                    sz_row.set_subtitle(&gihomo_core::SubscriptionUserInfo::format_bytes(size));
+                });
+            });
+        }
+
+        // Group 5: Geo Database Management
         let geo_group = adw::PreferencesGroup::builder()
             .title(tr("settings_geo"))
             .description(tr("settings_geo_desc"))
@@ -418,6 +513,7 @@ impl SettingsView {
         content_box.append(&appearance_group);
         content_box.append(&net_group);
         content_box.append(&kernel_group);
+        content_box.append(&logs_group);
         content_box.append(&geo_group);
         content_box.append(&about_group);
 
@@ -460,7 +556,12 @@ impl SettingsView {
             tun_cap_badge,
             btn_auth_tun,
             open_config_btn,
+            logs_group,
+            log_retention_row,
+            is_updating_log_retention,
+            log_size_row,
             open_logs_btn,
+            clear_logs_btn,
             geo_group,
             geoip_row,
             geosite_row,
@@ -530,7 +631,6 @@ impl SettingsView {
         self.tun_cap_row.set_title(tr("settings_tun_cap"));
         self.btn_auth_tun.set_label(tr("btn_authorize_tun"));
         self.open_config_btn.set_label(tr("btn_open_config_dir"));
-        self.open_logs_btn.set_label(tr("btn_open_log_dir"));
 
         let svc = self.service.clone();
         let badge = self.tun_cap_badge.clone();
@@ -546,6 +646,37 @@ impl SettingsView {
                 badge.set_css_classes(&["pill", "caption", "error"]);
                 btn.set_visible(true);
             }
+        });
+
+        self.logs_group.set_title(tr("settings_logs"));
+        self.logs_group
+            .set_description(Some(tr("settings_logs_desc")));
+        self.log_retention_row
+            .set_title(tr("settings_log_retention"));
+        self.log_retention_row
+            .set_subtitle(tr("settings_log_retention_sub"));
+        self.log_size_row.set_title(tr("settings_log_size"));
+        self.open_logs_btn.set_label(tr("btn_open_log_dir"));
+        self.clear_logs_btn.set_label(tr("btn_clear_logs"));
+
+        let selected_retention = crate::i18n::current_log_retention().to_index();
+        self.is_updating_log_retention.set(true);
+        let retention_model = StringList::new(&[
+            tr("log_retention_2h"),
+            tr("log_retention_1d"),
+            tr("log_retention_3d"),
+            tr("log_retention_7d"),
+            tr("log_retention_unlimited"),
+        ]);
+        self.log_retention_row.set_model(Some(&retention_model));
+        self.log_retention_row.set_selected(selected_retention);
+        self.is_updating_log_retention.set(false);
+
+        let svc_logs = self.service.clone();
+        let size_row = self.log_size_row.clone();
+        glib::MainContext::default().spawn_local(async move {
+            let size = svc_logs.kernel_logs_total_size().await;
+            size_row.set_subtitle(&gihomo_core::SubscriptionUserInfo::format_bytes(size));
         });
 
         self.geo_group.set_title(tr("settings_geo"));

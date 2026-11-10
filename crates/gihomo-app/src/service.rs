@@ -315,7 +315,7 @@ impl AppService {
 
                 // If this is the only subscription, auto-activate it
                 if subs.len() == 1 {
-                    let _ = self.activate_subscription(&sub.id).await;
+                    let _ = self.activate_subscription_silent(&sub.id).await;
                 }
 
                 self.emit_event(AppEvent::Notification(format!(
@@ -361,7 +361,7 @@ impl AppService {
         self.emit_event(AppEvent::SubscriptionsChanged(subs.clone()));
 
         if subs.len() == 1 {
-            let _ = self.activate_subscription(&sub.id).await;
+            let _ = self.activate_subscription_silent(&sub.id).await;
         }
 
         self.emit_event(AppEvent::Notification(format!(
@@ -410,7 +410,7 @@ impl AppService {
         self.emit_event(AppEvent::SubscriptionsChanged(subs.clone()));
 
         if subs.len() == 1 {
-            let _ = self.activate_subscription(&sub.id).await;
+            let _ = self.activate_subscription_silent(&sub.id).await;
         }
 
         self.emit_event(AppEvent::Notification(format!(
@@ -552,7 +552,7 @@ impl AppService {
 
                 let is_active = sub.is_active;
                 if is_active && is_modified {
-                    let _ = self.activate_subscription(&sub.id).await;
+                    let _ = self.activate_subscription_silent(&sub.id).await;
                 }
 
                 if emit_events {
@@ -585,7 +585,7 @@ impl AppService {
                     .map_err(|e| e.to_string())?;
 
                 if sub.is_active {
-                    let _ = self.activate_subscription(&sub.id).await;
+                    let _ = self.activate_subscription_silent(&sub.id).await;
                 }
 
                 if emit_events {
@@ -619,7 +619,7 @@ impl AppService {
                     .map_err(|e| e.to_string())?;
 
                 if sub.is_active {
-                    let _ = self.activate_subscription(&sub.id).await;
+                    let _ = self.activate_subscription_silent(&sub.id).await;
                 }
 
                 if emit_events {
@@ -717,7 +717,21 @@ impl AppService {
     }
 
     /// Activate a subscription: merge config, write to active config path, trigger reload
+    /// Activate a subscription by ID (synthesize config and reload kernel)
     pub async fn activate_subscription(&self, id: &str) -> Result<(), AppError> {
+        self.activate_subscription_inner(id, true).await
+    }
+
+    /// Activate a subscription silently without emitting a duplicate activation notification
+    pub async fn activate_subscription_silent(&self, id: &str) -> Result<(), AppError> {
+        self.activate_subscription_inner(id, false).await
+    }
+
+    async fn activate_subscription_inner(
+        &self,
+        id: &str,
+        emit_notification: bool,
+    ) -> Result<(), AppError> {
         info!("Activating subscription {}", id);
         let sub_content = self
             .storage
@@ -792,10 +806,12 @@ impl AppService {
         let active_sub = subs.iter().find(|s| s.id == id).cloned();
         self.emit_event(AppEvent::SubscriptionsChanged(subs));
         self.emit_event(AppEvent::ActiveSubscriptionChanged(active_sub));
-        self.emit_event(AppEvent::Notification(format!(
-            "已激活订阅：{}",
-            active_name
-        )));
+        if emit_notification {
+            self.emit_event(AppEvent::Notification(format!(
+                "已激活订阅：{}",
+                active_name
+            )));
+        }
 
         Ok(())
     }
@@ -963,10 +979,6 @@ impl AppService {
     /// Test group delay (ping all nodes in group)
     pub async fn test_group_delay(&self, group: &str) -> Result<(), AppError> {
         info!("Testing delay for group [{}]", group);
-        self.emit_event(AppEvent::Notification(format!(
-            "正在测试 [{}] 延迟...",
-            group
-        )));
 
         self.api
             .test_group_delay(group, "http://www.gstatic.com/generate_204", 2500)
@@ -1188,5 +1200,33 @@ impl AppService {
 
     pub async fn recent_kernel_logs(&self, max_lines: usize) -> Vec<LogMessage> {
         self.storage.read_recent_kernel_logs(max_lines).await
+    }
+
+    /// Returns total disk size of all kernel log files in bytes.
+    pub async fn kernel_logs_total_size(&self) -> u64 {
+        self.storage.kernel_logs_total_size().await
+    }
+
+    /// Clears and truncates all kernel log files from disk and triggers heap memory trimming.
+    pub async fn clear_all_kernel_logs(&self) -> Result<(), AppError> {
+        self.storage
+            .clear_all_kernel_logs()
+            .await
+            .map_err(|e| format!("清空日志文件失败: {}", e))?;
+        gihomo_infra::trim_memory();
+        self.emit_event(AppEvent::Notification("日志文件已清空".to_string()));
+        Ok(())
+    }
+
+    /// Performs retention maintenance on historical kernel logs.
+    pub async fn maintain_kernel_logs(
+        &self,
+        retention: gihomo_core::LogRetention,
+    ) -> Result<u64, AppError> {
+        const SAFETY_CAP_BYTES: u64 = 50 * 1024 * 1024;
+        self.storage
+            .rotate_and_clean_kernel_logs(retention.max_age(), SAFETY_CAP_BYTES)
+            .await
+            .map_err(|e| format!("维护日志文件失败: {}", e).into())
     }
 }

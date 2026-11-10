@@ -12,9 +12,9 @@ pub use config::{
 pub use error::CoreError;
 pub use model::{
     calculate_minimal_group_coverage, is_virtual_node, ConnectionItem, ConnectionMetadata,
-    ConnectionsSnapshot, GeoDatabaseInfo, KernelStatus, LogMessage, ProxyGroup, ProxyNode,
-    RuleItem, RuleProvider, Subscription, SubscriptionSource, SubscriptionUserInfo, TrafficStats,
-    TunConfig,
+    ConnectionsSnapshot, GeoDatabaseInfo, KernelStatus, LogMessage, LogRetention, ProxyGroup,
+    ProxyNode, RuleItem, RuleProvider, Subscription, SubscriptionSource, SubscriptionUserInfo,
+    TrafficStats, TunConfig,
 };
 pub use parser::{
     decode_base64_flexible, generate_profile_from_proxies, normalize_subscription_to_yaml,

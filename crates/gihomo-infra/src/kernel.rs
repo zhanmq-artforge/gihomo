@@ -204,6 +204,15 @@ fi"#
 
         // Prepare log redirection
         let log_path = storage.kernel_log_path();
+        if let Ok(meta) = std::fs::metadata(&log_path) {
+            const SAFETY_CAP_BYTES: u64 = 50 * 1024 * 1024;
+            if meta.len() >= SAFETY_CAP_BYTES {
+                let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+                let archive_path = storage.logs_dir().join(format!("mihomo-{}.log", timestamp));
+                let _ = std::fs::rename(&log_path, archive_path);
+            }
+        }
+
         let log_file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)

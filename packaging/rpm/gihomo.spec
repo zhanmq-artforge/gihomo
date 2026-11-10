@@ -1,5 +1,5 @@
 Name:           gihomo
-Version:        1.3.2
+Version:        1.3.3
 Release:        1%{?dist}
 Summary:        Modern native GTK4 + Libadwaita management client for Mihomo
 
@@ -76,6 +76,14 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_datadir}/polkit-1/rules.d/art.artforge.Gihomo.rules
 
 %changelog
+* Tue Nov 10 2026 zhanmq <zhanmq.china@gmail.com> - 1.3.3-1
+- Added configurable time-based kernel log retention (2h, 1d, 3d, 7d, unlimited) with automated rolling cleanup
+- Implemented 50MB active log rotation, bounded 256KB tail-seek log loading, and in-situ log clearing
+- Optimized notification pipeline: singleton toast dismissal on new events to eliminate queue backlog
+- Deduplicated identical rapid notification bursts within 1.5 seconds
+- Suppressed redundant intermediate activation toasts during subscription reload and group delay testing
+- Tuned toast display timeouts for snappy user feedback
+
 * Tue Nov 10 2026 zhanmq <zhanmq.china@gmail.com> - 1.3.2-1
 - Deduplicated batch proxy node latency testing across groups using minimal set-cover coverage (#10)
 - Consolidated single notification lifecycle and single UI topology refresh during batch latency testing

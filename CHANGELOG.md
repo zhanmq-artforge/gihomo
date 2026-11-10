@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2026-11-10
+
+### 🪵 Kernel Log Retention & Automated Rolling Cleanup
+
+#### ⏰ Configurable Time-Based Log Retention
+* **Multi-Tier Retention Policies**:
+  * Added time-based log retention settings in **Settings -> Runtime Logs**: `2 Hours`, `1 Day` (default), `3 Days`, `7 Days`, and `Unlimited`.
+  * Background maintenance worker automatically purges expired archive logs every 5 minutes and upon kernel startup, preventing unbounded disk growth.
+* **50MB Active Log Rotation & Disk Safety Cap**:
+  * Automatically rotates active `mihomo.log` to timestamped archives when exceeding 50MB, preserving active subprocess `stdout`/`stderr` logging integrity.
+  * Enforces a 500MB global safety cap to protect host disk storage even when retention is set to `Unlimited`.
+
+#### ⚡ O(1) Memory Tail-Seek Log Viewer & Immediate Clean Action
+* **Instant Log Clearing**:
+  * Provided an in-situ "Clear Logs" action row in Settings displaying total disk usage with real-time updates and log directory shortcuts.
+* **Bounded Tail-Seek Loading**:
+  * Replaced whole-file `read_to_string` with fixed 256KB tail seeking, completely eliminating memory spikes and UI latency when inspecting large kernel log files.
+
+### 🔔 Notification Pipeline Optimization & Anti-Backlog Engineering
+
+#### 🚀 Singleton Toast Dismissal & Queue Backlog Elimination
+* **Active Toast Dismissal on New Events**:
+  * Integrated proactive `dismiss()` on pending and active toasts in `MainWindow` upon receiving new notifications or errors.
+  * Completely eliminated Libadwaita's default FIFO queue accumulation, preventing dozens of seconds of stale toast backlog during rapid consecutive user interactions (e.g. batch pinging -> updating subscriptions -> restarting kernel).
+* **Fine-Tuned Display Timeouts**:
+  * Reduced normal operation notifications from default 3~5 seconds to a snappy 2 seconds (`set_timeout(2)`).
+  * Transient in-flight progress notifications receive a short 1-second display window, while error notifications retain 4 seconds with high priority.
+
+#### 🛡️ Notification Deduplication & Source-Level Noise Suppression
+* **Rapid Burst Deduplication**:
+  * Suppressed duplicate identical notifications received within a 1.5-second sliding window, eliminating repetitive popups from rapid double-clicks.
+* **Silent Subscription Re-application**:
+  * Introduced silent subscription activation (`activate_subscription_silent`) for automated internal reload paths (such as updating an active subscription or importing initial configurations), eliminating redundant `"已激活订阅"` toasts immediately preceding `"订阅更新完成"`.
+* **Cleaned Group Delay Testing**:
+  * Removed redundant transient start toast during single group latency testing in favor of in-situ button state feedback.
+
 ## [1.3.2] - 2026-11-10
 
 ### 🚀 Batch Latency Test Deduplication & Packaging Enhancements

@@ -29,6 +29,11 @@
   <url type="bugtracker">https://github.com/zhanmq-artforge/gihomo/issues</url>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.3.3" date="2026-11-10">
+      <description>
+        <p>Kernel Log Lifecycle Management &amp; Notification Pipeline Optimization: Added time-based log retention settings (2 hours, 1 day default, 3 days, 7 days, unlimited) with automated 50MB active log rotation and rolling cleanup; introduced bounded 256KB tail-seek log loading and in-situ log clearing; resolved toast notification backlog and queue accumulation during rapid operations (batch ping, subscription update, kernel restart); introduced instant toast dismissal on new events and deduplicated identical bursts; suppressed redundant intermediate activation toasts during subscription reload.</p>
+      </description>
+    </release>
     <release version="1.3.2" date="2026-11-10">
       <description>
         <p>Batch Latency Deduplication &amp; RPM Release: Implemented greedy minimal group coverage algorithm for batch proxy latency testing to eliminate redundant node tests across overlapping groups; consolidated test notifications and topology refreshes; integrated automated RPM package generation into GitHub Actions release workflow.</p>

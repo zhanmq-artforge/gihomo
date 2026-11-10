@@ -112,6 +112,8 @@ pub struct AppConfig {
     pub last_tun_enabled: bool,
     #[serde(default = "default_zero_u32")]
     pub auto_update_interval_minutes: u32,
+    #[serde(default)]
+    pub log_retention: gihomo_core::LogRetention,
 }
 
 enum ConfigWrite {
@@ -150,6 +152,7 @@ impl Default for AppConfig {
             last_proxy_enabled: false,
             last_tun_enabled: false,
             auto_update_interval_minutes: 0,
+            log_retention: gihomo_core::LogRetention::OneDay,
         }
     }
 }
@@ -991,6 +994,41 @@ static I18N: LazyLock<RwLock<I18nManager>> = LazyLock::new(|| {
     zh.insert("settings_version", "版本");
     en.insert("settings_version", "Version");
 
+    // Logs and Storage Settings
+    zh.insert("settings_logs", "日志与存储管理");
+    en.insert("settings_logs", "Logs & Storage");
+    zh.insert("settings_logs_desc", "内核运行日志保留策略与存储空间回收");
+    en.insert(
+        "settings_logs_desc",
+        "Kernel log retention policy and disk storage reclamation",
+    );
+    zh.insert("settings_log_retention", "日志保留时长");
+    en.insert("settings_log_retention", "Log Retention");
+    zh.insert(
+        "settings_log_retention_sub",
+        "自动清理超过保留期限的历史日志文件",
+    );
+    en.insert(
+        "settings_log_retention_sub",
+        "Automatically purge historical log files older than retention policy",
+    );
+    zh.insert("log_retention_2h", "2 小时");
+    en.insert("log_retention_2h", "2 Hours");
+    zh.insert("log_retention_1d", "1 天 (默认)");
+    en.insert("log_retention_1d", "1 Day (Default)");
+    zh.insert("log_retention_3d", "3 天");
+    en.insert("log_retention_3d", "3 Days");
+    zh.insert("log_retention_7d", "7 天");
+    en.insert("log_retention_7d", "7 Days");
+    zh.insert("log_retention_unlimited", "不限制");
+    en.insert("log_retention_unlimited", "Unlimited");
+    zh.insert("settings_log_size", "日志占用空间");
+    en.insert("settings_log_size", "Log Storage Size");
+    zh.insert("btn_clear_logs", "立即清空");
+    en.insert("btn_clear_logs", "Clear Now");
+    zh.insert("toast_logs_cleaned", "日志文件已清空");
+    en.insert("toast_logs_cleaned", "Log files cleared successfully");
+
     // General Settings (Autostart & Tray)
     zh.insert("settings_general", "通用设置");
     en.insert("settings_general", "General");
@@ -1111,6 +1149,17 @@ pub fn current_theme_config() -> ThemeMode {
     read_i18n().config.theme
 }
 
+pub fn current_log_retention() -> gihomo_core::LogRetention {
+    read_i18n().config.log_retention
+}
+
+pub fn set_log_retention(retention: gihomo_core::LogRetention) {
+    let mut mgr = write_i18n();
+    mgr.config.log_retention = retention;
+    save_config(&mgr.config);
+    info!(new_retention = ?retention, "Log retention preference updated");
+}
+
 pub fn active_resolved_language() -> ResolvedLanguage {
     read_i18n().active_language
 }
@@ -1152,6 +1201,7 @@ pub fn localize_notification_for_lang(msg: &str, lang: ResolvedLanguage) -> Stri
             "All network connections closed successfully".to_string()
         }
         "无可用节点测速" => "No testable nodes found".to_string(),
+        "日志文件已清空" => "Log files cleared successfully".to_string(),
         other => {
             if let Some(rest) = other.strip_prefix("正在并发测试全部节点延迟 (共 ") {
                 if let Some(count) = rest.strip_suffix(" 个)...") {
@@ -1378,6 +1428,7 @@ mod tests {
             last_proxy_enabled: true,
             last_tun_enabled: false,
             auto_update_interval_minutes: 60,
+            log_retention: gihomo_core::LogRetention::ThreeDays,
         };
         let serialized = serde_json::to_string(&config).unwrap();
         let deserialized: AppConfig = serde_json::from_str(&serialized).unwrap();
@@ -1389,6 +1440,10 @@ mod tests {
         assert!(deserialized.last_proxy_enabled);
         assert!(!deserialized.last_tun_enabled);
         assert_eq!(deserialized.auto_update_interval_minutes, 60);
+        assert_eq!(
+            deserialized.log_retention,
+            gihomo_core::LogRetention::ThreeDays
+        );
     }
 
     #[test]
@@ -1430,6 +1485,10 @@ mod tests {
         assert_eq!(
             localize_notification_for_lang("无可用节点测速", ResolvedLanguage::EnUs),
             "No testable nodes found"
+        );
+        assert_eq!(
+            localize_notification_for_lang("日志文件已清空", ResolvedLanguage::EnUs),
+            "Log files cleared successfully"
         );
     }
 

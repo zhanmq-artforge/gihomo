@@ -432,6 +432,9 @@ impl MainWindow {
         let settings_clone = settings.clone();
 
         glib::MainContext::default().spawn_local(async move {
+            let mut active_toast: Option<adw::Toast> = None;
+            let mut last_notification: Option<(String, std::time::Instant)> = None;
+
             loop {
                 match rx.recv().await {
                     Ok(event) => match event {
@@ -471,16 +474,61 @@ impl MainWindow {
                         }
                         AppEvent::Notification(msg) => {
                             info!("Notification: {}", msg);
+                            let now = std::time::Instant::now();
+
+                            // Suppress identical notifications received within 1.5s
+                            if let Some((ref last_msg, last_time)) = last_notification {
+                                if last_msg == &msg
+                                    && now.duration_since(last_time)
+                                        < std::time::Duration::from_millis(1500)
+                                {
+                                    continue;
+                                }
+                            }
+                            last_notification = Some((msg.clone(), now));
+
                             let localized_msg = crate::i18n::localize_notification(&msg);
-                            toast_overlay.add_toast(adw::Toast::new(&localized_msg));
+
+                            // Dismiss any previously queued or active toast to prevent backlog
+                            if let Some(prev) = active_toast.take() {
+                                prev.dismiss();
+                            }
+
+                            let toast = adw::Toast::new(&localized_msg);
+                            let is_transient = msg.starts_with("正在")
+                                || localized_msg.starts_with("Updating")
+                                || localized_msg.starts_with("Testing");
+                            let timeout = if is_transient { 1 } else { 2 };
+                            toast.set_timeout(timeout);
+
+                            active_toast = Some(toast.clone());
+                            toast_overlay.add_toast(toast);
                         }
                         AppEvent::ErrorOccurred(err) => {
+                            let now = std::time::Instant::now();
+                            if let Some((ref last_msg, last_time)) = last_notification {
+                                if last_msg == &err
+                                    && now.duration_since(last_time)
+                                        < std::time::Duration::from_millis(1500)
+                                {
+                                    continue;
+                                }
+                            }
+                            last_notification = Some((err.clone(), now));
+
+                            // Dismiss previous toast so error is displayed immediately
+                            if let Some(prev) = active_toast.take() {
+                                prev.dismiss();
+                            }
+
                             let toast = adw::Toast::new(&format!(
                                 "{}{}",
                                 crate::i18n::tr("error_prefix"),
                                 err
                             ));
                             toast.set_priority(adw::ToastPriority::High);
+                            toast.set_timeout(4);
+                            active_toast = Some(toast.clone());
                             toast_overlay.add_toast(toast);
                         }
                         _ => {}
