@@ -1,10 +1,12 @@
-use crate::error::CoreError;
+use std::collections::HashSet;
+
 use base64::engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD};
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use serde_yaml::{Mapping, Value};
-use std::collections::HashSet;
 use url::Url;
+
+use crate::error::CoreError;
 
 #[inline]
 fn invalid_sub(msg: impl Into<String>) -> CoreError {
@@ -47,7 +49,10 @@ pub fn percent_decode(input: &str) -> String {
     while let Some(b) = chars.next() {
         if b == b'%' {
             if let (Some(h1), Some(h2)) = (chars.next(), chars.next()) {
-                if let Ok(byte) = u8::from_str_radix(&format!("{}{}", h1 as char, h2 as char), 16) {
+                if let Some(byte) = std::str::from_utf8(&[h1, h2])
+                    .ok()
+                    .and_then(|s| u8::from_str_radix(s, 16).ok())
+                {
                     bytes.push(byte);
                     continue;
                 }

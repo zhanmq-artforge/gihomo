@@ -1,12 +1,11 @@
 //! Internationalization (i18n), theme preference management, and configuration persistence.
 
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use std::sync::{mpsc, LazyLock, RwLock};
+
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fs,
-    path::PathBuf,
-    sync::{mpsc, LazyLock, RwLock},
-};
 use tracing::{debug, info};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

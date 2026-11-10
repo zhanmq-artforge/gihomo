@@ -1,14 +1,17 @@
 //! Storage manager and disk file orchestration for Gihomo.
 
-use crate::error::InfraError;
-use gihomo_core::{parse_user_info_header, Subscription, SubscriptionUserInfo};
-use reqwest::header::{HeaderMap, HeaderValue, IF_NONE_MATCH, USER_AGENT};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
+use reqwest::header::{HeaderMap, HeaderValue, IF_NONE_MATCH, USER_AGENT};
 use tokio::fs;
 use tracing::info;
+
+use gihomo_core::{parse_user_info_header, Subscription, SubscriptionUserInfo};
+
+use crate::error::InfraError;
 
 pub const APP_ID: &str = "art.artforge.Gihomo";
 
@@ -264,7 +267,7 @@ impl StorageManager {
         headers.insert(
             USER_AGENT,
             HeaderValue::from_static(
-                "Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.0",
+                "Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.1",
             ),
         );
 

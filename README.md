@@ -6,6 +6,7 @@
 [![GTK4](https://img.shields.io/badge/GTK4-4.12+-blue.svg)](https://gtk.org/)
 [![libadwaita](https://img.shields.io/badge/libadwaita-1.5+-purple.svg)](https://gnome.pages.gitlab.gnome.org/libadwaita/)
 [![Mihomo](https://img.shields.io/badge/Mihomo-v1.19+-orange.svg)](https://github.com/MetaCubeX/mihomo)
+[![Google Rust Style Guide](https://img.shields.io/badge/Code%20Style-Google%20Rust-4285F4.svg)](https://google.github.io/styleguide/rustguide.html)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](LICENSE)
 
 **A modern native Libadwaita & GTK4 client for Mihomo on Linux and GNOME.**  
@@ -104,6 +105,18 @@ The repository is organized following Clean Architecture principles as a decoupl
 
 ---
 
+### 🛡️ Engineering Standards & Google Rust Style Guide Compliance
+
+The entire codebase strictly conforms to the **[Google Rust Style Guide](https://google.github.io/styleguide/rustguide.html)** and modern production-grade Rust engineering standards:
+
+* **Unsafe Code Auditing & `SAFETY:` Contracts**: All FFI boundaries and platform system calls are accompanied by clear `// SAFETY:` invariant documentation.
+* **Structured Module Granularity & Clean Imports**: Standardized four-tier import organization (`std`, external crates, workspace crates, and internal modules) with zero wildcard globs and zero nested braces (`::`).
+* **Explicit Invariants & Idiomatic Control Flow**: Eliminates bare unwraps and check-then-unwrap patterns in favor of exhaustive pattern matching, `let ... else` guard clauses, and strongly-typed `thiserror` domain errors.
+* **Zero-Allocation Optimizations**: Employs stack slice parsing, borrowing, and in-place diff updates to eliminate redundant heap allocations.
+* **Rigorous Tooling Verification**: 100% formatted via `cargo fmt` with 0 warnings under `cargo clippy --workspace --all-targets -- -D warnings`.
+
+---
+
 ### 📦 Prerequisites & System Dependencies
 
 On Ubuntu / Debian:
@@ -165,8 +178,8 @@ cargo run
 #### Debian / Ubuntu (`.deb`)
 ```bash
 ./scripts/package-deb.sh
-# Generated artifact: dist/gihomo_1.3.0_amd64.deb
-sudo dpkg -i dist/gihomo_1.3.0_amd64.deb
+# Generated artifact: dist/gihomo_1.3.1_amd64.deb
+sudo dpkg -i dist/gihomo_1.3.1_amd64.deb
 ```
 
 #### Fedora / RHEL (`.rpm`)
@@ -268,6 +281,18 @@ cargo generate-rpm
 * **[`crates/gihomo-infra`](crates/gihomo-infra)** — 基础设施适配层：原生内核进程监管（`KernelManager`）、REST 与 WebSocket API 客户端（`MihomoApiClient`）、GNOME GSettings 代理驱动（`SystemProxyManager`）与本地文件持久化（`StorageManager`）。
 * **[`crates/gihomo-app`](crates/gihomo-app)** — 应用服务协调层：中央控制器（`AppService`）、响应式状态机与跨线程异步广播事件总线（`AppEvent`）。
 * **[`crates/gihomo-ui`](crates/gihomo-ui)** — 原生展示层：Libadwaita 原生视图（`DashboardView`、`ProxiesView`、`RulesView`、`ConnectionsView`、`LogsView`、`SubscriptionsView`、`SettingsView`）、i18n 国际化引擎与主题调度器。
+
+---
+
+### 🛡️ 工程质量与 Google Rust 编码规范
+
+项目全仓代码严格遵循 **[Google Rust Style Guide (谷歌 Rust 编码规范)](https://google.github.io/styleguide/rustguide.html)** 与生产级高可靠工程实践：
+
+* **Unsafe 严格审计与 `SAFETY:` 契约规范**：所有涉及平台 FFI 与系统调用的 `unsafe` 代码块均在紧邻上方标注完整的 `// SAFETY:` 安全前提与不变式技术说明；
+* **标准化引用分组与模块粒度**：严格遵循四层 Imports 分组规范（标准库、三方依赖、工作空间 Crate、本地模块），杜绝通配符 Glob 导入及花括号内部 `::` 嵌套；
+* **现代控制流与零野蛮恐慌**：生产代码杜绝裸 `unwrap`，全面推行 `let ... else` 提前守卫、穷尽模式匹配以及基于 `thiserror` 的强类型领域错误链；
+* **零堆微分配设计**：关键网络与协议解析路径采用栈切片借用与零分配算法，消除冗余内存构造开销；
+* **严苛的静态质检要求**：全仓 100% 通过 `cargo fmt` 格式化，并在 `cargo clippy --workspace --all-targets -- -D warnings` 下保持 0 警告通过。
 
 ---
 

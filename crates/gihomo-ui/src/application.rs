@@ -1,10 +1,12 @@
 //! Gihomo GTK4 / AdwApplication lifecycle management, multi-instance forwarding, and startup orchestration.
 
-use adw::prelude::*;
-use gihomo_app::AppService;
-use gtk4::subclass::prelude::*;
 use std::cell::{Cell, RefCell};
+
+use adw::prelude::*;
+use gtk4::subclass::prelude::*;
 use tracing::{info, warn};
+
+use gihomo_app::AppService;
 
 use crate::window::MainWindow;
 use crate::APPLICATION_ID;

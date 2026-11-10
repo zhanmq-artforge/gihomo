@@ -1,10 +1,13 @@
 //! Main entry point for the Gihomo GTK4 / Libadwaita desktop application.
 
-use gihomo_app::AppService;
-use gihomo_ui::{ExitCode, GihomoApplication, APPLICATION_ID};
 use gio::prelude::{ApplicationExt, ApplicationExtManual};
 use tracing::{info, warn};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
+
+use gihomo_app::AppService;
+use gihomo_ui::{ExitCode, GihomoApplication, APPLICATION_ID};
 
 const DEFAULT_MIXED_PORT: u16 = 7890;
 const DEFAULT_CONTROLLER_PORT: u16 = 9090;
@@ -30,8 +33,10 @@ fn main() -> ExitCode {
         "Starting Gihomo - Modern Native Mihomo Client"
     );
 
-    // Initialize multi-threaded Tokio runtime and enter guard so background tasks can be spawned
+    // Initialize multi-threaded Tokio runtime with 2 worker threads to minimize OS thread
+    // stack overhead and allocator arena fragmentation.
     let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
         .enable_all()
         .build()
         .expect("Failed to initialize Tokio runtime");

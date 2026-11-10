@@ -20,27 +20,29 @@ fn autostart_file_path() -> Option<PathBuf> {
 
 /// Check if autostart at system login is currently enabled.
 pub fn is_autostart_enabled() -> bool {
-    if let Some(path) = autostart_file_path() {
-        if path.exists() {
-            if let Ok(content) = fs::read_to_string(&path) {
-                return !content.contains("X-GNOME-Autostart-enabled=false");
-            }
-        }
+    let Some(path) = autostart_file_path() else {
+        return false;
+    };
+    if !path.exists() {
+        return false;
     }
-    false
+    fs::read_to_string(&path)
+        .map(|content| !content.contains("X-GNOME-Autostart-enabled=false"))
+        .unwrap_or(false)
 }
 
 /// Enable or disable autostart at system login.
 pub fn set_autostart(enabled: bool) -> io::Result<()> {
-    if let Some(path) = autostart_file_path() {
-        if enabled {
-            if let Some(parent) = path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::write(path, AUTOSTART_DESKTOP_ENTRY)?;
-        } else if path.exists() {
-            let _ = fs::remove_file(path);
+    let Some(path) = autostart_file_path() else {
+        return Ok(());
+    };
+    if enabled {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
         }
+        fs::write(path, AUTOSTART_DESKTOP_ENTRY)?;
+    } else if path.exists() {
+        let _ = fs::remove_file(path);
     }
     Ok(())
 }

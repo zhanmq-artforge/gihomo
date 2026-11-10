@@ -1,9 +1,11 @@
-use adw::prelude::*;
-use gihomo_app::AppService;
-use gihomo_core::{Subscription, SubscriptionSource, SubscriptionUserInfo};
-use gtk4::{Button, Label, Orientation, ProgressBar, ScrolledWindow};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+
+use adw::prelude::*;
+use gtk4::{Button, Label, Orientation, ProgressBar, ScrolledWindow};
+
+use gihomo_app::AppService;
+use gihomo_core::{Subscription, SubscriptionSource, SubscriptionUserInfo};
 
 use crate::i18n;
 

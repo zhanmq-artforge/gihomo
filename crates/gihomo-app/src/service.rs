@@ -1,8 +1,14 @@
 //! Application orchestration service coordinating storage, kernel lifecycle, proxy state, and notifications.
 
-use crate::error::AppError;
-use crate::event::AppEvent;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+
 use chrono::Utc;
+use tokio::sync::RwLock;
+use tracing::{debug, info, warn};
+
 use gihomo_core::{
     generate_base_config, merge_subscription_config, normalize_subscription_to_yaml,
     ConnectionsSnapshot, GeoDatabaseInfo, KernelStatus, LogMessage, ProxyGroup, RuleItem,
@@ -11,12 +17,9 @@ use gihomo_core::{
 use gihomo_infra::{
     KernelManager, MihomoApiClient, RemoteSubscriptionDownload, StorageManager, SystemProxyManager,
 };
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::RwLock;
-use tracing::{debug, info, warn};
+
+use crate::error::AppError;
+use crate::event::AppEvent;
 
 #[derive(Clone)]
 pub struct AppService {
@@ -261,6 +264,15 @@ impl AppService {
                         }
                     }
                 }
+            }
+        });
+
+        // 4. Low-frequency heap memory trim worker (every 5 minutes)
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(300));
+            loop {
+                interval.tick().await;
+                gihomo_infra::trim_memory();
             }
         });
     }

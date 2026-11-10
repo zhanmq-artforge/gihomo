@@ -1,11 +1,14 @@
 //! REST and WebSocket API client for the Mihomo external controller.
 
-use crate::error::InfraError;
-use gihomo_core::TrafficStats;
+use std::time::Duration;
+
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde_json::Value;
-use std::time::Duration;
 use tracing::{debug, info};
+
+use gihomo_core::TrafficStats;
+
+use crate::error::InfraError;
 
 #[derive(Clone, Debug)]
 pub struct MihomoApiClient {

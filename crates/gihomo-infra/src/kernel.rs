@@ -1,13 +1,16 @@
 //! Mihomo kernel lifecycle management, process discovery, capabilities verification, and supervision.
 
-use crate::error::InfraError;
-use crate::storage::StorageManager;
-use gihomo_core::KernelStatus;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
 use tokio::fs;
 use tokio::process::Command;
 use tracing::{debug, info, warn};
+
+use gihomo_core::KernelStatus;
+
+use crate::error::InfraError;
+use crate::storage::StorageManager;
 
 pub struct KernelManager;
 
@@ -217,9 +220,10 @@ fi"#
             .stderr(std::process::Stdio::from(err_file));
 
         #[cfg(target_os = "linux")]
+        // SAFETY: `pre_exec` runs in the child process immediately after fork and before exec.
+        // The closure executes only the async-signal-safe `prctl` syscall and accesses no shared state.
         unsafe {
             cmd.pre_exec(|| {
-                // SAFETY: The child hook only makes the async-signal-safe prctl syscall and accesses no shared state.
                 if libc::prctl(
                     libc::PR_SET_PDEATHSIG,
                     libc::SIGTERM as libc::c_ulong,
@@ -282,8 +286,9 @@ fi"#
             if let Ok(content) = fs::read_to_string(&pid_path).await {
                 if let Ok(pid) = content.trim().parse::<u32>() {
                     #[cfg(unix)]
+                    // SAFETY: `pid` is a non-zero PID of the spawned Mihomo child process read
+                    // from the validated PID file. Sending SIGTERM does not violate memory safety.
                     unsafe {
-                        // SAFETY: Sending SIGTERM signal to specific known child PID
                         libc::kill(pid as libc::pid_t, libc::SIGTERM);
                     }
 
@@ -300,8 +305,9 @@ fi"#
                     let proc_path = format!("/proc/{}", pid);
                     if Path::new(&proc_path).exists() {
                         #[cfg(unix)]
+                        // SAFETY: `pid` is a non-zero PID of the spawned Mihomo child process.
+                        // Forcefully terminating a lingering child process does not violate memory safety.
                         unsafe {
-                            // SAFETY: Sending SIGKILL signal to specific known child PID
                             libc::kill(pid as libc::pid_t, libc::SIGKILL);
                         }
                     }

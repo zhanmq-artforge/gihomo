@@ -6,4 +6,5 @@ pub mod service;
 
 pub use error::AppError;
 pub use event::AppEvent;
+pub use gihomo_infra::trim_memory;
 pub use service::AppService;

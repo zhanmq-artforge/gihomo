@@ -1,11 +1,13 @@
 //! GNOME GSettings system proxy manager running in dedicated worker thread.
 
-use crate::error::InfraError;
-use gio::prelude::*;
-use glib::GString;
 use std::sync::mpsc::{self, Receiver, Sender, SyncSender};
 use std::time::Duration;
+
+use gio::prelude::*;
+use glib::GString;
 use tracing::{debug, info, warn};
+
+use crate::error::InfraError;
 
 enum ProxyCommand {
     IsEnabled(SyncSender<bool>),

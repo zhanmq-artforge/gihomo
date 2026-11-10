@@ -1,13 +1,14 @@
 //! Native desktop system tray integration powered by KSNI (StatusNotifierItem protocol).
 
-use gihomo_app::{AppEvent, AppService};
-use gihomo_core::Subscription;
 use gio::prelude::ApplicationExt;
 use glib::object::Cast;
 use gtk4::prelude::{GtkApplicationExt, GtkWindowExt, WidgetExt};
 use ksni::menu::{CheckmarkItem, MenuItem, StandardItem, SubMenu};
 use ksni::{Handle, ToolTip, Tray, TrayMethods};
 use tracing::{error, info};
+
+use gihomo_app::{AppEvent, AppService};
+use gihomo_core::Subscription;
 
 pub struct GihomoTray {
     pub proxy_enabled: bool,

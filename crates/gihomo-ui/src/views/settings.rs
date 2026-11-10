@@ -2,8 +2,9 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use adw::prelude::*;
-use gihomo_app::AppService;
 use gtk4::{Button, Label, Orientation, ScrolledWindow, StringList};
+
+use gihomo_app::AppService;
 
 use crate::i18n::{
     current_language_config, current_theme_config, set_language, set_theme, tr, Language, ThemeMode,

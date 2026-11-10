@@ -1,13 +1,15 @@
+use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
+use std::rc::Rc;
+
 use adw::prelude::*;
-use gihomo_app::AppService;
-use gihomo_core::LogMessage;
 use gtk4::{
     Button, DropDown, Orientation, ScrolledWindow, SearchEntry, TextBuffer, TextMark, TextView,
     ToggleButton,
 };
-use std::cell::{Cell, RefCell};
-use std::collections::VecDeque;
-use std::rc::Rc;
+
+use gihomo_app::AppService;
+use gihomo_core::LogMessage;
 
 use crate::i18n;
 
@@ -376,6 +378,7 @@ impl LogsView {
             self.clear_btn.connect_clicked(move |_| {
                 all_logs.borrow_mut().clear();
                 buffer.set_text("");
+                crate::trim_memory();
             });
         }
     }

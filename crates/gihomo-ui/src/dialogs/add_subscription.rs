@@ -1,10 +1,12 @@
-use adw::prelude::*;
-use gihomo_app::AppService;
-use gtk4::{Button, FileDialog, FileFilter};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
+
+use adw::prelude::*;
+use gtk4::{Button, FileDialog, FileFilter};
 use tracing::error;
+
+use gihomo_app::AppService;
 
 use crate::i18n;
 

@@ -1,11 +1,13 @@
 //! Main application window assembly, responsive adaptive navigation split-view, and reactive event loop.
 
-use adw::prelude::*;
-use gihomo_app::{AppEvent, AppService};
-use gtk4::subclass::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use adw::prelude::*;
+use gtk4::subclass::prelude::*;
 use tracing::info;
+
+use gihomo_app::{AppEvent, AppService};
 
 use crate::views::{
     ConnectionsView, DashboardView, LogsView, ProxiesView, RulesView, SettingsView,
@@ -141,6 +143,7 @@ impl MainWindow {
         win.connect_close_request(|w| {
             if crate::i18n::close_to_tray_config() {
                 w.set_visible(false);
+                crate::trim_memory();
                 glib::Propagation::Stop
             } else {
                 if let Some(app) = gio::Application::default() {
@@ -154,6 +157,8 @@ impl MainWindow {
         win.connect_notify_local(Some("visible"), |w, _| {
             if w.is_visible() {
                 w.resync_runtime_state();
+            } else {
+                crate::trim_memory();
             }
         });
         win

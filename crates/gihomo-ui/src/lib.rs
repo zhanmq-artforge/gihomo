@@ -8,6 +8,7 @@ pub mod views;
 pub mod window;
 
 pub use application::{GihomoApplication, MihomoApplication};
+pub use gihomo_app::trim_memory;
 pub use glib::ExitCode;
 pub use i18n::tr;
 pub use window::MainWindow;

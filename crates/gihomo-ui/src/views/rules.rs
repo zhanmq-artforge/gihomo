@@ -1,10 +1,13 @@
-use crate::i18n;
-use adw::prelude::*;
-use gihomo_app::AppService;
-use gihomo_core::{RuleItem, RuleProvider};
-use gtk4::{Button, Label, Orientation, ScrolledWindow, SearchEntry};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+
+use adw::prelude::*;
+use gtk4::{Button, Label, Orientation, ScrolledWindow, SearchEntry};
+
+use gihomo_app::AppService;
+use gihomo_core::{RuleItem, RuleProvider};
+
+use crate::i18n;
 
 struct RuleRowHandle {
     title_vbox: gtk4::Box,

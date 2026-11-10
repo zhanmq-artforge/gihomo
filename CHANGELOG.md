@@ -9,9 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-11-10
+
+### ⚡ Memory Footprint Optimization & Proactive Heap Reclamation
+
+#### ⚡ Asynchronous Runtime Thread Pool Tuning
+* **Tokio Worker Pool Optimization**:
+  * Explicitly configured Tokio multi-threaded runtime worker threads to 2 (`worker_threads(2)`), replacing the default allocation of all CPU cores (16 threads).
+  * Dramatically reduced OS thread stack allocations and prevented glibc memory allocator arena explosion, ensuring smooth asynchronous I/O while minimizing idle system footprint.
+
+#### 🧹 Proactive Glibc Heap Trimming (`malloc_trim`)
+* **On-Demand Memory Release**:
+  * Integrated process-level `malloc_trim(0)` through an audited platform abstraction to proactively return freed heap pages to the operating system kernel.
+  * **Tray Minimize Hook**: Triggers instant memory trimming when closing or minimizing the window to the system tray, dropping resident memory significantly when backgrounded.
+  * **Console Clear Hook**: Triggers immediate memory reclamation when clearing large log buffers in the Logs view.
+  * **Low-Frequency Background Maintenance**: Spawns a silent background heartbeat executing every 5 minutes to continuously eliminate long-running memory fragmentation.
+
+#### 🚀 Performance & Micro-Allocations
+* **Zero-Allocation URL Percent-Decoding**:
+  * Replaced temporary heap string allocations with direct stack slice parsing (`std::str::from_utf8(&[h1, h2])`) during URL percent-decoding in subscription node parsing.
+* **Control Flow Flattening**:
+  * Adopted guard clauses and `let ... else` control flow across system autostart and kernel lifecycle routines.
+
 ## [1.3.0] - 2026-11-09
 
-### 🚀 Advanced VLESS Protocol Support, Universal Subscription Normalization & Google Rust Style Compliance
+### 🚀 Advanced VLESS Protocol Support & Universal Subscription Normalization
 
 #### 🌐 Core Protocol Parser Enhancements
 * **Advanced VLESS Implementation**:
@@ -36,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * **Multi-Client User-Agent Emulation**:
   * Updated remote subscription download User-Agent header with multi-client emulation (`Elephant Network/v2.1.0 ClashMeta; Clash.Meta; mihomo; art.artforge.Gihomo/1.3.0`), ensuring airports return full node catalogs across varied backend filter rules.
 
-#### 🛡️ Google Rust Style Guide Full Compliance & Optimization
+#### 🛡️ Architecture & Resource Optimization
 * **Zero-Allocation Idioms**:
   * Replaced heap-allocating `String::to_lowercase()` with `str::eq_ignore_ascii_case()` across all protocol and transport matching paths.
   * Replaced temporary `Value::String` allocation with string slices in `map.contains_key(...)`.

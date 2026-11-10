@@ -1,11 +1,13 @@
-use adw::prelude::*;
-use gihomo_app::AppService;
-use gihomo_core::{ProxyGroup, ProxyNode};
-use gtk4::{Button, Label, Orientation, ScrolledWindow, SearchEntry};
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::rc::Rc;
 use std::time::Duration;
+
+use adw::prelude::*;
+use gtk4::{Button, Label, Orientation, ScrolledWindow, SearchEntry};
+
+use gihomo_app::AppService;
+use gihomo_core::{ProxyGroup, ProxyNode};
 
 use crate::i18n;
 

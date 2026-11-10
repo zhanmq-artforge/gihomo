@@ -1,8 +1,9 @@
 //! Mihomo configuration generation, merging, and security synthesis.
 
+use serde_yaml::{Mapping, Value};
+
 use crate::error::CoreError;
 use crate::model::SubscriptionUserInfo;
-use serde_yaml::{Mapping, Value};
 
 /// Generates a clean base Mihomo configuration template.
 #[must_use]
